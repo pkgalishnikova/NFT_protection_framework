@@ -67,5 +67,37 @@
   **Dataset:** Adaptive—prefers real COCO images for realism, falls back to structured synthetic data to ensure training feasibility in restricted environments (e.g., no internet). All images are 256×256.
 
   **Robustness:** Focused on practical, achievable robustness for short payloads. Evaluated using PSNR (>30 dB = imperceptible) and True Positive Rate (TPR). Successfully recovers the Ethereum address prefix ("0xBC4CA0EdA7") with >90% bit accuracy even after JPEG compression, demonstrating feasibility for real-world invisible tagging.
-   
 
+# To 25.12:
+   
+8. StegaStamp_var0.8 -> 58.13%
+   
+   **Model:** Custom PyTorch StegaStamp with a U-Net-like encoder embedding a 160-bit Ethereum address into a 128×128 RGB image (via residual +        sigmoid), and a CNN decoder predicting secret logits.
+
+   **Training:** End-to-end with JPEG (Q=50) + Gaussian blur applied during training; loss = MSE (image) + 15×BCE (secret).
+
+   **Dataset:** Primarily COCO val2017 (128×128); falls back to synthetic JPEG images if download fails.
+
+   **Robustness:** Evaluated against same JPEG+blur pipeline; 58.3% bit accuracy achieved — below 70% success threshold. Not tested on cropping,       rotation, or real print-scan.
+   
+9. StegaStamp_var0.9 -> 51.88%
+
+   **Model:** Same StegaStamp encoder/decoder for 160-bit Ethereum addresses in 128×128 RGB images.
+
+   **Training:** Extended to 20 epochs, 1500 COCO images, and mixed-precision (FP16) training; loss reweighted to 0.5×MSE + 20×BCE to prioritize       secret recovery over visual fidelity.
+
+   **Dataset:** Larger COCO subset (1.5k vs 800)
+
+   **Robustness:** Same JPEG (Q=50) + Gaussian blur evaluation; 51.88% bit accuracy — lower than prior run, likely due to stronger secret-loss         weighting increasing distortion sensitivity or overfitting.
+
+10. StegaStamp_var0.10 -> 57%
+
+    **Model:** Lightweight encoder-decoder pair — encoder injects a 100-bit truncated Ethereum address as a residual into 256×256 images               (normalized to [–1,1]); decoder uses 4× downsampling + global pooling.
+
+    **Training:** Trained for 3k steps on 200 synthetic or 500 COCO images, using mixed secret pool (30 random + 1 target address); loss = BCE +       0.5×MSE.
+
+    **Attacks:** Evaluated under JPEG (Q=50) + Gaussian blur (σ=1.0) — same as training.
+
+    **Robustness:** Achieves 51.88% bit accuracy on the target address after attacks — below 70% reliability threshold; clean accuracy is higher,      indicating vulnerability to distortions.
+
+11. StegaStamp_var0.11 -> 

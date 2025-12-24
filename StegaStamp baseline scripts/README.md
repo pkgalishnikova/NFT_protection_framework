@@ -98,6 +98,6 @@
 
     **Attacks:** Evaluated under JPEG (Q=50) + Gaussian blur (σ=1.0) — same as training.
 
-    **Robustness:** Achieves 51.88% bit accuracy on the target address after attacks — below 70% reliability threshold; clean accuracy is higher,      indicating vulnerability to distortions.
+    **Robustness:** Achieves 57% bit accuracy on the target address after attacks — below 70% reliability threshold; clean accuracy is higher,      indicating vulnerability to distortions.
 
 11. StegaStamp_var0.11 -> 

@@ -128,6 +128,6 @@
 
     **Training:** Enhanced with diverse augmentations — JPEG quality (50–90) and Gaussian blur (σ=0.5–1.5, kernel 3/5) randomized per     sample; larger secret pool (51 addresses, balanced bits); lower LR (1e-4), cosine annealing, and reduced image loss weight (0.3).
 
-    **Evaluation:** Tested on fixed JPEG (Q=50) + blur (σ=1.0) — achieves 72.3% bit accuracy, surpassing the 70% threshold and            showing 5.3-point gain over the prior 67% model.
+    **Evaluation:** Tested on fixed JPEG (Q=50) + blur (σ=1.0)
 
     **Robustness:** Most resilient variant to date — demonstrates that attack diversity during training (not just architecture) is        critical for real-world distortion tolerance.

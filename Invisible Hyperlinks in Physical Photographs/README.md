@@ -1,12 +1,20 @@
 ## StegaStamp: Invisible Hyperlinks in Physical Photographs [[Project Page]](http://www.matthewtancik.com/stegastamp)
 ## Важно!
 
-Файл stegastamp/saved_models/stegastamp_pretrained с моделями взят из репозитория https://github.com/ytfrdfiw/StegaStamp. Для использования моделей запустить следующей командой:
+Файл stegastamp/saved_models/stegastamp_pretrained с моделями взят из [репозитория](https://github.com/ytfrdfiw/StegaStamp). Для использования моделей запустить следующей командой:
 ```
 cd /path/to/your/stegastamp_pretrained.zip.*
 cat stegastamp_pretrained.zip.* > stegastamp_pretrained.zip
 unzip stegastamp_pretrained.zip -d saved_models/
 ```
+
+Файл stegastamp/detector_models/stegastamp_detector с моделями взят из [репозитория](https://github.com/ytfrdfiw/StegaStamp). Для использования моделей запустить следующей командой:
+```
+cd /path/to/your/stegastamp_detector.zip.*
+cat stegastamp_detector.zip.* > stegastamp_detector.zip
+unzip stegastamp_detector.zip -d detector_models/
+```
+
 ### CVPR 2020
 **[Matthew Tancik](https://www.matthewtancik.com), [Ben Mildenhall](http://people.eecs.berkeley.edu/~bmild/), [Ren Ng](https://scholar.google.com/citations?hl=en&user=6H0mhLUAAAAJ)**
 *University of California, Berkeley*

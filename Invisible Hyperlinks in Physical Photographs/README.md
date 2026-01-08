@@ -91,7 +91,8 @@ Example usage:
 ```bash=
 python decode_image.py \
   saved_models/stegastamp_pretrained \
-  --image out/test_hidden.png
+  --image out/0_hidden.png \
+  --original_secret "Hello"
 ```
 
 ## Detecting and Decoding

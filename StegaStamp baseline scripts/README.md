@@ -154,7 +154,7 @@
 
     CLIPdir (directional consistency): 0.0072 (negligible  directional alignment)
 
-14. StegaStamp_var0.13
+13. StegaStamp_var0.13
 
     **Model:** Same HiDDeN+StegaStamp hybrid architecture — encoder with batch norm, residual refinement, and trainable α; decoder        with pyramid features, global pooling, and attention.
 

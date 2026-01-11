@@ -112,17 +112,49 @@
 
     **Robustness:** High clean performance but significant degradation under blur indicates the model was not sufficiently exposed to     blur variations during training — suggesting a need for stronger or randomized blur augmentation.
 
-12. StegaStamp_var0.12 -> best so far, 67% on gaussian blur once
+12. **StegaStamp_var0.12 -> best so far, 67% on gaussian blur once**
 
-    **Model:** Modernized HiDDeN-inspired architecture with StegaStamp enhancements — encoder features batch norm, LeakyReLU,             residual refinement, trainable embedding strength (α), and spatial secret expansion; decoder adds pyramid feature extraction,         global pooling, and channel-wise attention for robust secret extraction.
+    **Training:** 3,000 steps on 200–500 natural/synthetic images; secret pool of 31 Ethereum prefixes; loss = BCE + 0.5×MSE; trained exclusively against Gaussian blur (σ=1.0) — no JPEG compression used during training or attack.
 
-    **Training:** 3,000 steps on 200–500 natural/synthetic images; secret pool of 31 Ethereum prefixes; loss = BCE + 0.5×MSE; trained     exclusively against Gaussian blur (σ=1.0) — no JPEG compression used during training or attack.
+    **Evaluation:** Achieves 67% bit accuracy under Gaussian blur, a 9-point improvement over the prior 58% model — demonstrating effectiveness of architectural upgrades (attention, normalization, residual blocks) in handling smoothing distortions.
 
-    **Evaluation:** Achieves 67% bit accuracy under Gaussian blur, a 9-point improvement over the prior 58% model — demonstrating         effectiveness of architectural upgrades (attention, normalization, residual blocks) in handling smoothing distortions.
+    **Robustness:** Highest blur resilience among tested variants, nearing the 70% reliability threshold; still vulnerable to stronger or combined distortions (e.g., JPEG + blur), suggesting next-step augmentation should include multi-attack compositions.
 
-    **Robustness:** Highest blur resilience among tested variants, nearing the 70% reliability threshold; still vulnerable to             stronger or combined distortions (e.g., JPEG + blur), suggesting next-step augmentation should include multi-attack compositions.
+    **Dataset:** COCO val2017 (1,500 images)
+    
+    **Image resolution:** 256 × 256
 
-13. StegaStamp_var0.13
+    **Secret size:** 100 bits (fixed; corresponds to a 12-character Ethereum address like 0xBC4CA0EdA7)
+
+    ### Architecture:
+    
+    **Model:** Modernized HiDDeN-inspired architecture with StegaStamp enhancements — encoder features batch norm, LeakyReLU, residual refinement, trainable embedding strength (α), and spatial secret expansion; decoder adds pyramid feature extraction, global pooling, and channel-wise attention for robust secret extraction.
+
+    **Encoder:** U-Net-like with secret injection at intermediate feature map (8×16×16 → upsampled to H/4×W/4), residual refinement blocks, and learnable scaling parameter α
+
+    **Decoder:** Pyramid CNN with attention mechanism and global average pooling, outputs 100 logits
+
+    **Loss function:** Loss = L_secret + 0.5 * L_image, where L_secret = BCEWithLogits between predicted and ground-truth secret bits, and L_image = MSE between original and watermarked images
+
+    **Error-correcting code:** Not used during training
+
+    **Attacks during training:** Only Gaussian blur (T.GaussianBlur(kernel_size=5, sigma=1.0)), with fixed parameters (no randomness, scheduling, or augmentation)
+
+    ### Validation results:
+
+    **Clean (no attack):** 63% secret recovery accuracy (one time 67%), PSNR = 75.29 dB dB, MSE ≈ 0.000000118398 (good for steganography)
+
+    **Under Gaussian blur:** 0% ASR (Attack Success Rate), 100% EAR (consistently recovers the same wrong address, e.g., 0x01AF8F21A2)
+
+    **CLIP-based metrics:**
+
+    CLIPimg (image similarity): 0.9961 (excellent visual fidelity)
+
+    CLIPout (text-image alignment): 0.1969 (weak semantic relevance)
+
+    CLIPdir (directional consistency): 0.0072 (negligible  directional alignment)
+
+14. StegaStamp_var0.13
 
     **Model:** Same HiDDeN+StegaStamp hybrid architecture — encoder with batch norm, residual refinement, and trainable α; decoder        with pyramid features, global pooling, and attention.
 

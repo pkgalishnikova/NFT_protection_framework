@@ -102,8 +102,6 @@
 
 11. StegaStamp_var0.11 -> only Gaussian blur 58%
     
-    **Model:** Lightweight encoder-decoder StegaStamp variant embedding a 100-bit truncated Ethereum address into 256×256 RGB images      (normalized to [–1, 1]); encoder uses secret expansion → spatial upsampling → feature fusion → residual output; decoder uses 4-       stage downsampling + global average pooling + MLP.
-
     **Training:** Trained for 3,000 steps on 200 synthetic or 500 COCO images, with a fixed secret pool of 31 diverse addresses (30       random + 1 target); optimized with Adam (lr=2e-4), loss = BCE (secret) + 0.5×MSE (image), gradient clipping.
 
     **Evaluation (clean):** Tested on watermarked but undistorted images — achieves 98% bit accuracy, confirming strong baseline          embedding capability.
@@ -111,6 +109,40 @@
     **Evaluation (Gaussian blur only):** When only Gaussian blur (σ=1.0, kernel=5) is applied post-embedding (no JPEG), accuracy          drops to 58%, revealing high sensitivity to smoothing distortions.
 
     **Robustness:** High clean performance but significant degradation under blur indicates the model was not sufficiently exposed to     blur variations during training — suggesting a need for stronger or randomized blur augmentation.
+
+    **Dataset:** COCO val2017 (1,500 images)
+    
+    **Image resolution:** 256 × 256
+
+    **Secret size:** 100 bits (fixed; corresponds to a 12-character Ethereum address like 0xBC4CA0EdA7)
+
+    ### Architecture:
+    
+    **Model:** Lightweight encoder-decoder StegaStamp variant embedding a 100-bit truncated Ethereum address into 256×256 RGB images      (normalized to [–1, 1]); encoder uses secret expansion → spatial upsampling → feature fusion → residual output; decoder uses 4-       stage downsampling + global average pooling + MLP.
+
+    **Encoder:** Lightweight U-Net-like with secret embedding via spatial feature injection (16×16×16 → upsampled), fused with image features, and residual output scaled by fixed factor 0.15
+
+    **Decoder:** Simple 4-layer CNN with strided convolutions and global average pooling, followed by fully connected layers to predict 100 secret bits
+
+    **Loss function:** Loss = L_secret + 0.5 * L_image, where L_secret = BCEWithLogits between predicted and ground-truth secret bits, and L_image = MSE between original and watermarked images
+
+    **Error-correcting code:** Not used during training or evaluation
+
+    **Attacks during training:** Only Gaussian blur (T.GaussianBlur(kernel_size=5, sigma=1.0)), applied with fixed parameters (no randomness, scheduling, or augmentation)
+
+    ### Validation results:
+
+    **Clean (no attack):** 54% secret recovery accuracy (one time 67%), PSNR = 95.34 dB, MSE ≈ 0.000000001170 (good for steganography)
+
+    **Under Gaussian blur:** 0% ASR (Attack Success Rate), 100% EAR
+
+    **CLIP-based metrics:**
+
+    CLIPimg (image similarity): 0.9956
+
+    CLIPout (text-image alignment): 0.1967
+
+    CLIPdir (directional consistency): 0.0080
 
 12. **StegaStamp_var0.12 -> best so far, 67% on gaussian blur once**
 

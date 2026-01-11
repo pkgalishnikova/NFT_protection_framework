@@ -102,7 +102,7 @@
 
 11. StegaStamp_var0.11 -> only Gaussian blur 58%
     
-    **Training:** Trained for 3,000 steps on 200 synthetic or 500 COCO images, with a fixed secret pool of 31 diverse addresses (30       random + 1 target); optimized with Adam (lr=2e-4), loss = BCE (secret) + 0.5×MSE (image), gradient clipping.
+    **Training:** Trained for 3,000 steps on 1500 COCO images, with a fixed secret pool of 31 diverse addresses (30       random + 1 target); optimized with Adam (lr=2e-4), loss = BCE (secret) + 0.5×MSE (image), gradient clipping.
 
     **Evaluation (clean):** Tested on watermarked but undistorted images — achieves 98% bit accuracy, confirming strong baseline          embedding capability.
 

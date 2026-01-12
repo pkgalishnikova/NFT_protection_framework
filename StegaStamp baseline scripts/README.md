@@ -92,15 +92,45 @@
 
 10. StegaStamp_var0.10 -> 57%
 
-    **Model:** Lightweight encoder-decoder pair — encoder injects a 100-bit truncated Ethereum address as a residual into 256×256 images               (normalized to [–1,1]); decoder uses 4× downsampling + global pooling.
+    **Training:** Trained for 3k steps on 1500 COCO images, using mixed secret pool (30 random + 1 target address); loss = BCE + 0.5×MSE.
 
-    **Training:** Trained for 3k steps on 200 synthetic or 500 COCO images, using mixed secret pool (30 random + 1 target address); loss = BCE +       0.5×MSE.
+    **Robustness:** Achieves 57% bit accuracy on the target address after attacks — below 70% reliability threshold; clean accuracy is higher, indicating vulnerability to distortions.
 
-    **Attacks:** Evaluated under JPEG (Q=50) + Gaussian blur (σ=1.0) — same as training.
+    **Dataset:** COCO val2017 (1,500 images)
+    
+    **Image resolution:** 256 × 256
 
-    **Robustness:** Achieves 57% bit accuracy on the target address after attacks — below 70% reliability threshold; clean accuracy is higher,      indicating vulnerability to distortions.
+    **Secret size:** 100 bits (fixed; corresponds to a 27-character Ethereum address like 0xBC4CA0EdA7647A8aB7C2061c2)
 
-11. StegaStamp_var0.11 -> only Gaussian blur 58%
+    ### Architecture:
+    
+    **Model:** Lightweight encoder-decoder pair — encoder injects a 100-bit truncated Ethereum address as a residual into 256×256 images (normalized to [–1,1]); decoder uses 4× downsampling + global pooling.
+
+    **Encoder:** Lightweight U-Net-like with secret embedding via spatial feature injection (16×16×16 → upsampled to H/4×W/4), fused with image features, and residual output scaled by fixed factor 0.15
+
+    **Decoder:** Simple 4-layer CNN with strided convolutions and global average pooling, followed by fully connected layers to predict 100 secret bits
+
+    **Loss function:** Loss = L_secret + 0.5 * L_image, where L_secret = BCEWithLogits between predicted and ground-truth secret bits, and L_image = MSE between original and watermarked images
+
+    **Error-correcting code:** Not used during training or evaluation
+
+    **Attacks during training:** Only Gaussian blur (T.GaussianBlur(kernel_size=5, sigma=1.0)), applied with fixed parameters (no randomness, scheduling, or augmentation)
+
+    ### Validation results:
+
+    **Clean (no attack):** 55% secret recovery accuracy, PSNR = 94.40 dB, MSE ≈ 0.000000001454 (good for steganography)
+
+    **Under Gaussian blur:** 0% ASR (Attack Success Rate), 100% EAR
+
+    **CLIP-based metrics:**
+
+    CLIPimg (image similarity): 0.9951
+
+    CLIPout (text-image alignment): 0.1998
+
+    CLIPdir (directional consistency): 0.0360
+
+12. StegaStamp_var0.11 -> only Gaussian blur 58%
     
     **Training:** Trained for 3,000 steps on 1500 COCO images, with a fixed secret pool of 31 diverse addresses (30       random + 1 target); optimized with Adam (lr=2e-4), loss = BCE (secret) + 0.5×MSE (image), gradient clipping.
 
@@ -144,7 +174,7 @@
 
     CLIPdir (directional consistency): 0.0080
 
-12. **StegaStamp_var0.12 -> best so far, 67% on gaussian blur once**
+13. **StegaStamp_var0.12 -> best so far, 67% on gaussian blur once**
 
     **Training:** 3,000 steps on 200–500 natural/synthetic images; secret pool of 31 Ethereum prefixes; loss = BCE + 0.5×MSE; trained exclusively against Gaussian blur (σ=1.0) — no JPEG compression used during training or attack.
 
@@ -186,7 +216,7 @@
 
     CLIPdir (directional consistency): 0.0072 (negligible  directional alignment)
 
-13. StegaStamp_var0.13
+14. StegaStamp_var0.13
 
     **Model:** Same HiDDeN+StegaStamp hybrid architecture — encoder with batch norm, residual refinement, and trainable α; decoder        with pyramid features, global pooling, and attention.
 

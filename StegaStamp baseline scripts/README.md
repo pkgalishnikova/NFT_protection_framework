@@ -82,15 +82,45 @@
    
 9. StegaStamp_var0.9 -> 51.88%
 
-   **Model:** Same StegaStamp encoder/decoder for 160-bit Ethereum addresses in 128×128 RGB images.
+   **Training:** Extended to 20 epochs, 1500 COCO images, and mixed-precision (FP16) training; loss reweighted to 0.5×MSE + 20×BCE to prioritize secret recovery over visual fidelity.
 
-   **Training:** Extended to 20 epochs, 1500 COCO images, and mixed-precision (FP16) training; loss reweighted to 0.5×MSE + 20×BCE to prioritize       secret recovery over visual fidelity.
+   **Robustness:** Gaussian blur evaluation; 51.88% bit accuracy — lower than prior run, likely due to stronger secret-loss         weighting increasing distortion sensitivity or overfitting.
 
-   **Dataset:** Larger COCO subset (1.5k vs 800)
+   **Dataset:** COCO val2017 (1,500 images)
+    
+    **Image resolution:** 128 × 128
 
-   **Robustness:** Same JPEG (Q=50) + Gaussian blur evaluation; 51.88% bit accuracy — lower than prior run, likely due to stronger secret-loss         weighting increasing distortion sensitivity or overfitting.
+    **Secret size:** 160 bits
 
-10. StegaStamp_var0.10 -> 57%
+    ### Architecture:
+    
+    **Model:** Same StegaStamp encoder/decoder for 160-bit Ethereum addresses in 128×128 RGB images.
+
+    **Encoder:** U-Net-like with secret injection at 16×16 spatial resolution, upscaled to match image features, and residual output passed through sigmoid
+
+    **Decoder:** 7-layer CNN with strided convolutions and global feature aggregation, outputting 160 secret bits
+
+    **Loss function:** Loss = 0.5 * L_image + 20.0 * L_secret, where L_image = MSE between original and watermarked images, and L_secret = BCEWithLogits between decoded and ground-truth secret bits
+
+    **Error-correcting code:** Not used during training or evaluation
+
+    **Attacks during training:** Gaussian blur only (kernel_size=5, sigma=1.0), applied with fixed parameters
+
+    ### Validation results:
+
+    **Clean (no attack):** 56.2% secret recovery accuracy, PSNR = 25.26 dB, MSE = 0.002978
+
+    **Under Gaussian blur:** 0% ASR (Attack Success Rate), 100% EAR
+
+    **CLIP-based metrics:**
+
+    CLIPimg (image similarity): 0.9272
+
+    CLIPout (text-image alignment): 0.2255
+
+    CLIPdir (directional consistency): 0.1741
+
+11. StegaStamp_var0.10 -> 57%
 
     **Training:** Trained for 3k steps on 1500 COCO images, using mixed secret pool (30 random + 1 target address); loss = BCE + 0.5×MSE.
 

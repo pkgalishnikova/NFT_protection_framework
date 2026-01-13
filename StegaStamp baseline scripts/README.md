@@ -71,16 +71,46 @@
 # To 25.12:
    
 8. StegaStamp_var0.8 -> 58.13%
-   
-   **Model:** Custom PyTorch StegaStamp with a U-Net-like encoder embedding a 160-bit Ethereum address into a 128×128 RGB image (via residual +        sigmoid), and a CNN decoder predicting secret logits.
 
-   **Training:** End-to-end with JPEG (Q=50) + Gaussian blur applied during training; loss = MSE (image) + 15×BCE (secret).
-
-   **Dataset:** Primarily COCO val2017 (128×128); falls back to synthetic JPEG images if download fails.
+   **Training:** Gaussian blur applied during training; loss = MSE (image) + 15×BCE (secret).
 
    **Robustness:** Evaluated against same JPEG+blur pipeline; 58.3% bit accuracy achieved — below 70% success threshold. Not tested on cropping,       rotation, or real print-scan.
+
+   **Dataset:** COCO val2017 (1,500 images)
+    
+    **Image resolution:** 128 × 128
+
+    **Secret size:** 160 bits
+
+    ### Architecture:
+    
+    **Model:** Custom PyTorch StegaStamp with a U-Net-like encoder embedding a 160-bit Ethereum address into a 128×128 RGB image (via residual + sigmoid), and a CNN decoder predicting secret logits.
+
+    **Encoder:** U-Net-like with secret injection at 16×16 spatial resolution, upscaled to match image features, and residual output passed through sigmoid
+
+    **Decoder:** 7-layer CNN with strided convolutions and global feature aggregation, outputting 160 secret bits
+
+    **Loss function:** Loss = L_image + 15.0 * L_secret, where L_image = MSE between original and watermarked images, and L_secret = BCEWithLogits between decoded and ground-truth secret bits
+
+    **Error-correcting code:** Not used during training or evaluation
+
+    **Attacks during training:** Gaussian blur only (kernel_size=5, sigma=1.0), applied with fixed parameters
+
+    ### Validation results:
+
+    **Clean (no attack):** 55% secret recovery accuracy, PSNR = 26.99 dB, MSE = 0.002002
+
+    **Under Gaussian blur:** 0% ASR (Attack Success Rate), 100% EAR
+
+    **CLIP-based metrics:**
+
+    CLIPimg (image similarity): 0.9458
+
+    CLIPout (text-image alignment): 0.2211
+
+    CLIPdir (directional consistency): 0.1464
    
-9. StegaStamp_var0.9 -> 51.88%
+10. StegaStamp_var0.9
 
    **Training:** Extended to 20 epochs, 1500 COCO images, and mixed-precision (FP16) training; loss reweighted to 0.5×MSE + 20×BCE to prioritize secret recovery over visual fidelity.
 

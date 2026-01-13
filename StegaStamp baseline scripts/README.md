@@ -276,12 +276,40 @@
 
     CLIPdir (directional consistency): 0.0072 (negligible  directional alignment)
 
-14. StegaStamp_var0.13
+13. StegaStamp_var0.13
 
-    **Model:** Same HiDDeN+StegaStamp hybrid architecture — encoder with batch norm, residual refinement, and trainable α; decoder        with pyramid features, global pooling, and attention.
+    **Training:** Enhanced with diverse augmentations — Gaussian blur (σ=0.5–1.5, kernel 3/5) randomized per sample; larger secret pool (51 addresses, balanced bits); lower LR (1e-4), cosine annealing, and reduced image loss weight (0.3).
 
-    **Training:** Enhanced with diverse augmentations — JPEG quality (50–90) and Gaussian blur (σ=0.5–1.5, kernel 3/5) randomized per     sample; larger secret pool (51 addresses, balanced bits); lower LR (1e-4), cosine annealing, and reduced image loss weight (0.3).
+     **Dataset:** COCO val2017 (1,500 images)
+    
+    **Image resolution:** 256 × 256
 
-    **Evaluation:** Tested on fixed JPEG (Q=50) + blur (σ=1.0)
+    **Secret size:** 100 bits (fixed; corresponds to a 12-character Ethereum address like 0xBC4CA0EdA7)
 
-    **Robustness:** Most resilient variant to date — demonstrates that attack diversity during training (not just architecture) is        critical for real-world distortion tolerance.
+    ### Architecture:
+    
+    **Model:** Same HiDDeN+StegaStamp hybrid architecture — encoder with batch norm, residual refinement, and trainable α; decoder with pyramid features, global pooling, and attention.
+
+    **Encoder:** Enhanced U-Net with secret preprocessing (4096 → 8×16×16), batch normalization, residual refinement blocks, and learnable scaling parameter (α)
+
+    **Decoder:** Pyramid CNN with attention mechanism, global average pooling, and feature fusion (256 + 64 → 512 → 256 → 100)
+
+    **Loss function:** Loss = L_secret + 0.3 * L_image, where L_secret = BCEWithLogits and L_image = MSE
+
+    **Error-correcting code:** Not used during training
+
+    **Attacks during training:** Variable Gaussian blur only (σ=0.5–1.5, kernel size 3 or 5)
+
+    ### Validation results:
+
+    **Clean (no attack):** 61% secret recovery accuracy, PSNR = 68.13 dB dB, MSE = 0.000000615577 (good for steganography)
+
+    **Under Gaussian blur:** 0% ASR (Attack Success Rate), 100% EAR
+
+    **CLIP-based metrics:**
+
+    CLIPimg (image similarity): 0.9971
+
+    CLIPout (text-image alignment): 0.1962
+
+    CLIPdir (directional consistency): -0.0071

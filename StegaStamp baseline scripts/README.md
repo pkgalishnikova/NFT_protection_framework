@@ -110,7 +110,7 @@
 
     CLIPdir (directional consistency): 0.1464
    
-10. StegaStamp_var0.9
+9. StegaStamp_var0.9
 
    **Training:** Extended to 20 epochs, 1500 COCO images, and mixed-precision (FP16) training; loss reweighted to 0.5×MSE + 20×BCE to prioritize secret recovery over visual fidelity.
 
@@ -150,7 +150,7 @@
 
     CLIPdir (directional consistency): 0.1741
 
-11. StegaStamp_var0.10 -> 57%
+10. StegaStamp_var0.10
 
     **Training:** Trained for 3k steps on 1500 COCO images, using mixed secret pool (30 random + 1 target address); loss = BCE + 0.5×MSE.
 
@@ -190,7 +190,7 @@
 
     CLIPdir (directional consistency): 0.0360
 
-12. StegaStamp_var0.11 -> only Gaussian blur 58%
+11. StegaStamp_var0.11
     
     **Training:** Trained for 3,000 steps on 1500 COCO images, with a fixed secret pool of 31 diverse addresses (30       random + 1 target); optimized with Adam (lr=2e-4), loss = BCE (secret) + 0.5×MSE (image), gradient clipping.
 
@@ -234,7 +234,7 @@
 
     CLIPdir (directional consistency): 0.0080
 
-13. **StegaStamp_var0.12 -> best so far, 67% on gaussian blur once**
+12. **StegaStamp_var0.12 -> best so far, 67% on gaussian blur once**
 
     **Training:** 3,000 steps on 200–500 natural/synthetic images; secret pool of 31 Ethereum prefixes; loss = BCE + 0.5×MSE; trained exclusively against Gaussian blur (σ=1.0) — no JPEG compression used during training or attack.
 
@@ -276,7 +276,7 @@
 
     CLIPdir (directional consistency): 0.0072 (negligible  directional alignment)
 
-13. StegaStamp_var0.13
+13. StegaStamp_var0.13 - also good
 
     **Training:** Enhanced with diverse augmentations — Gaussian blur (σ=0.5–1.5, kernel 3/5) randomized per sample; larger secret pool (51 addresses, balanced bits); lower LR (1e-4), cosine annealing, and reduced image loss weight (0.3).
 
@@ -313,3 +313,77 @@
     CLIPout (text-image alignment): 0.1962
 
     CLIPdir (directional consistency): -0.0071
+
+14. StegaStamp_var0.14 - also good
+
+   **Training:** Learning rate: 1e-4 with cosine annealing, Optimizer: Adam (β1=0.9, β2=0.999), Gradient clipping and balanced secret pool (50 random + 1 target).
+
+   **Dataset:** COCO val2017 (1,500 images)
+    
+   **Image resolution:** 256 × 256
+
+   **Secret size:** 100 bits (fixed; corresponds to a 12-character Ethereum address like 0xBC4CA0EdA7)
+
+   ### Architecture:
+
+   **Encoder:** Enhanced U-Net with secret preprocessing (4096 → 8×16×16), batch normalization, residual refinement blocks, and learnable scaling parameter (α)
+
+   **Decoder:** Pyramid CNN with attention mechanism, global pooling, and feature fusion (256 + 64 → 512 → 256 → 100)
+
+   **Loss function:** Loss = 2.0 * L_secret + 0.3 * L_image, where L_secret = BCEWithLogits and L_image = MSE
+
+   **Error-correcting code:** Not used during training
+
+   **Attacks during training:** Differentiable Gaussian blur with variable sigma (σ=0.5–1.5) and kernel size (3/5) — fully integrated into computational graph
+
+   ### Validation results:
+
+   **Clean (no attack):** 70% secret recovery accuracy, PSNR = 26.56 dB, MSE = 0.008835732937
+
+   **Under Gaussian blur:** 0% ASR (Attack Success Rate), 100% EAR
+
+   **CLIP-based metrics:**
+
+    CLIPimg (image similarity): 0.9082
+
+    CLIPout (text-image alignment): 0.2108
+
+    CLIPdir (directional consistency): 0.1890
+
+   <img width="985" height="265" alt="image" src="https://github.com/user-attachments/assets/d5e6df79-280e-4254-b21a-ca18191ef436" />
+
+15. StegaStamp_var0.15 - reproduction of code from article Invisible Hyperlinks in Physical Photographs
+    
+   **Training:** Learning rate: 1e-4 with cosine annealing, Optimizer: Adam (β1=0.9, β2=0.999), Gradient clipping and balanced secret pool (50 random + 1 target).
+
+   **Dataset:** COCO val2017 (1,500 images)
+    
+   **Image resolution:** 256 × 256
+
+   **Secret size:** 96 bits (initially planned to use with BCH)
+
+   ### Architecture:
+   
+   **Encoder:** U-Net-like with secret preprocessing (4096 → 8×16×16), batch normalization, residual refinement, and fixed scaling factor (0.5) instead of learnable alpha
+
+   **Decoder:** Pyramid CNN with attention, global pooling, and feature fusion (256 + 64 → 512 → 256 → 96) 
+
+   **Loss function:** Loss = 0.5 * L_secret + 0.1 * L_image, where L_secret = BCEWithLogits and L_image = MSE
+
+   **Error-correcting code:** Not used during training
+
+   **Attacks during training:** Differentiable Gaussian blur with aggressive parameters (σ up to 3.0, kernel up to 9×9) for robustness
+
+   ### Validation results:
+
+   **Clean (no attack):** 79.2% secret recovery accuracy, PSNR = 19.41 dB, MSE = 0.045780241489
+
+   **Under Gaussian blur:** 0% ASR (Attack Success Rate), 100% EAR
+
+   **CLIP-based metrics:**
+
+    CLIPimg (image similarity): 0.8535
+
+    CLIPout (text-image alignment): 0.2146
+
+    CLIPdir (directional consistency): 0.2351

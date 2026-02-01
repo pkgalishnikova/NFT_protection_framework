@@ -1,0 +1,271 @@
+# configs/base.yaml
+# Base configuration for StegaStamp Watermarking
+
+experiment:
+  name: "base_experiment"
+  description: "Baseline watermarking experiment"
+  seed: 42
+  device: "cuda"  # auto-detect cuda if available, else cpu
+
+# Target secret configuration
+target:
+  ethereum_address: "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D"
+  short_version: "0xBC4CA0EdA7"  # First 12 characters (100 bits)
+  num_bits: 100  # 25 hex chars * 4 bits/char = 100 bits
+
+# Model architecture
+model:
+  encoder:
+    type: "ImprovedEncoder"
+    message_len: 100
+    alpha_init: 0.15  # Initial alpha value (learnable parameter)
+    
+    # Secret preprocessor
+    secret_preproc:
+      hidden_dim: 4096
+      spatial_channels: 8
+      spatial_size: 16
+    
+    # Image encoder
+    image_encoder:
+      stage1_out_channels: 32
+      stage2_out_channels: 64
+      stage3_out_channels: 128
+    
+    # Fusion
+    fusion_channels: 128
+    
+  decoder:
+    type: "ImprovedDecoder"
+    message_len: 100
+    
+    # Feature extraction
+    stem_channels: 32
+    stage1_channels: 64
+    stage2_channels: [128, 256]
+    
+    # Pyramid pooling
+    psp_channels: 64
+    
+    # Attention
+    attention_channels: 64
+    
+    # Classifier
+    classifier:
+      hidden_dims: [512, 256]
+      dropout: [0.5, 0.4]
+
+# Dataset configuration
+dataset:
+  # Data source
+  source: "coco"  # Options: "coco", "synthetic"
+  coco_path: "val2017"
+  num_images: 1500
+  
+  # Synthetic fallback
+  synthetic:
+    enabled: true  # Create synthetic if COCO not found
+    num_images: 200
+    image_size: 256
+    save_dir: "synthetic"
+    shapes_per_image: 5
+    color_range: [50, 255]
+  
+  # Image preprocessing
+  image_size: 256
+  normalization:
+    mean: [0.5, 0.5, 0.5]
+    std: [0.5, 0.5, 0.5]
+  
+  # Augmentation
+  augmentation:
+    resize: 256
+    random_crop: 256
+    random_horizontal_flip: true
+  
+  # DataLoader
+  batch_size: 16
+  shuffle: true
+  num_workers: 2
+  pin_memory: true
+  drop_last: true
+
+# Training configuration
+training:
+  # Duration
+  max_steps: 3000
+  steps_per_epoch: 100  # For epoch calculation
+  
+  # Optimizer
+  optimizer:
+    type: "adam"
+    lr: 1.0e-4
+    betas: [0.9, 0.999]
+    weight_decay: 0.0
+  
+  # Learning rate scheduler
+  scheduler:
+    type: "cosine"
+    T_max: 3000
+    eta_min: 1.0e-5
+  
+  # Loss configuration
+  loss:
+    secret_loss_weight: 2.0
+    image_loss_weight: 0.3
+  
+  # Gradient clipping
+  gradient_clipping:
+    encoder_max_norm: 1.0
+    decoder_max_norm: 1.0
+  
+  # Training strategy
+  train_on_target_only: false  # If true, only train on target secret
+  use_diverse_secrets: true     # If true, use secret pool
+  num_diverse_secrets: 50       # Number of random secrets in pool
+  
+  # Attack during training
+  use_differentiable_blur: true
+  blur_attack:
+    sigma_min: 0.5
+    sigma_max: 2.0
+    kernel_sizes: [3, 5]
+  
+  # Evaluation during training
+  eval_every: 100  # Steps
+  eval_samples: 2  # Number of samples to evaluate
+  
+  # Checkpointing
+  save_best_only: true
+  metric_for_best: "target_acc"  # or "target_acc_attacked"
+  save_threshold: 0.70  # Only save if metric > threshold
+
+# Evaluation configuration
+evaluation:
+  # Test configuration
+  test_image_path: "/content/0.jpg"  # Single test image path
+  test_dataset_size: 10  # If evaluating on dataset
+  
+  # Attack configuration
+  attack:
+    type: "gaussian_blur"
+    sigma: 1.0
+    kernel_size: 5
+  
+  # ASR/EAR calculation
+  num_attack_trials: 20
+  recovery_threshold: 0.5
+  
+  # Blur strength analysis
+  blur_analysis:
+    enabled: true
+    sigmas: [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+  
+  # Metrics to compute
+  metrics:
+    - "psnr"
+    - "mse"
+    - "tpr"
+    - "bit_accuracy"
+    - "asr"
+    - "ear"
+    - "clip_img"
+    - "clip_out"
+    - "clip_dir"
+  
+  # CLIP configuration
+  clip:
+    model: "ViT-B/32"
+    device: "cuda"
+
+# Visualization configuration
+visualization:
+  # General settings
+  enabled: true
+  dpi: 150
+  format: "png"  # Options: "png", "pdf", "both"
+  
+  # Training plots
+  training_plots:
+    enabled: true
+    save_dir: "train_plots"
+    plots:
+      - "loss_curves"
+      - "accuracy"
+      - "psnr_tpr"
+      - "gradients"
+      - "variance"
+      - "attention_maps"
+  
+  # Test visualization
+  test_plots:
+    enabled: true
+    residual_scale: 15  # Amplification factor for residual visualization
+    save_individual_images: true
+    
+  # Attention maps
+  attention:
+    num_samples: 6
+    alpha_overlay: 0.6
+    colormap: "hot"
+
+# Logging configuration
+logging:
+  # Console logging
+  log_level: "INFO"
+  log_every: 100  # Steps
+  
+  # Print gradient diagnostics
+  gradient_diagnostics:
+    enabled: true
+    log_every: 100  # Steps
+    check_layers:
+      - "encoder.decoder[0].weight"
+      - "encoder.alpha"
+  
+  # File logging
+  save_logs: true
+  log_file: "training.log"
+  
+  # History tracking
+  save_history: true
+  history_file: "training_history.json"
+
+# Output configuration
+output:
+  # Base directories
+  base_dir: "experiments/base"
+  results_dir: "results"
+  
+  # Subdirectories
+  checkpoint_dir: "checkpoints"
+  plots_dir: "train_plots"
+  test_images_dir: "test_images"
+  
+  # Model saving
+  save_final_model: true
+  final_model_name: "final_model.pth"
+  best_model_name: "best_model.pth"
+  
+  # What to include in checkpoint
+  checkpoint_contents:
+    - "encoder_state_dict"
+    - "decoder_state_dict"
+    - "optimizer_state_dict"
+    - "scheduler_state_dict"
+    - "step"
+    - "epoch"
+    - "best_metric"
+    - "history"
+    - "config"
+
+# Hardware/Performance
+hardware:
+  cuda_deterministic: true
+  cudnn_benchmark: true
+  mixed_precision: false  # Enable for faster training (experimental)
+  
+# Reproducibility
+reproducibility:
+  seed: 42
+  deterministic: true

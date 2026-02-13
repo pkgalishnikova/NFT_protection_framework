@@ -1,0 +1,12 @@
+{
+  "acc_clean_mean": 0.5197599811553955,
+  "acc_clean_std": 0.0015304886579876028,
+  "acc_clean_var": 2.342395532228693e-06,
+  "acc_attacked_mean": 0.5197599811553955,
+  "acc_attacked_std": 0.0015304886579876028,
+  "acc_attacked_var": 2.342395532228693e-06,
+  "perfect_recovery_clean_pct": 0.0,
+  "perfect_recovery_attacked_pct": 0.0,
+  "logits_sigmoid_mean": 0.5011293852329254,
+  "logits_abs_mean": 0.029606574416160582
+}

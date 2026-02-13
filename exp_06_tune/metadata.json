@@ -1,0 +1,17 @@
+{
+  "source": "COCO val2017",
+  "total_images": 5000,
+  "train_size": 1500,
+  "test_size": 500,
+  "train_indices": [
+    0,
+    1499
+  ],
+  "test_indices": [
+    1500,
+    1999
+  ],
+  "no_data_leakage": true,
+  "image_size": 256,
+  "experiment": "exp_06"
+}

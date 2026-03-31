@@ -1,4 +1,4 @@
-# Experiments Overview
+# Experiments with StegaStamp Overview
 
 This directory contains all experiments conducted in order to optimize the watermarking system.
 

@@ -522,4 +522,73 @@ This directory contains all experiments conducted in order to optimize the water
 
 <img width="2400" height="600" alt="qualitative_plot_8" src="https://github.com/user-attachments/assets/7c3eb712-db47-46b3-aa97-0fd97412263e" />
 
+### Experiment 9 – Adversarial Discriminator (Full HiDDeN) Optimizer
 
+#### Configuration
+
+| Parameter | Value |
+|----------|------|
+| Optimizer | AdamW (Enc+Dec: lr=1e-3, Disc: lr=1e-4) |
+| Scheduler | OneCycleLR (max_lr=2e-3, epochs=140) |
+| Image Size | 128×128 pixels |
+| Batch Size | 32 (train) / 16 (test) |
+| Loss Function | 3.0 × MSE(message) + 0.3 × MSE(image) + 0.001 × adversarial |
+| Message Length | 48 bits (12 hex chars) |
+| Architecture | Encoder: 6×ConvBNRelu(64ch) + Decoder: 8×ConvBNRelu(64ch) + Discriminator |
+| Training Epochs | 80 |
+| Device | CUDA|
+
+## Results
+
+### Bit Accuracy (%) – From Metrics Plot
+
+| Condition | Accuracy |
+|----------|---------|
+| Clean (σ=0.0 / 0°) | ~86% |
+| Blur σ=0.5 | ~86% |
+| Blur σ=1.0 | ~73% |
+| Blur σ=1.5 | ~59% |
+| Blur σ=2.0 | ~55% |
+| Blur σ=3.0 | ~54% |
+| Rotation 0° | ~86% |
+| Rotation 5° | ~83% |
+| Rotation 10° | ~80% |
+| Rotation 15° | ~76% |
+| Rotation 20° | ~73% |
+| Rotation 30° | ~69% |
+
+## Image Quality & Exact Recovery
+
+| Metric | Value |
+|--------|------|
+| ASR (Attack Success Rate) | ~0% |
+
+## Key Observations
+
+1. **Adversarial Training Integrated (HiDDeN-style)**  
+A discriminator was introduced to distinguish between original and watermarked images, forcing the encoder to produce more realistic outputs. The adversarial loss (weight = 0.001) improves perceptual quality while maintaining message fidelity.
+
+2. **Stable but Lower Clean Accuracy**  
+Clean accuracy (~86%) is lower than previous experiments (~92%), indicating that adversarial pressure slightly harms pure decoding performance. This reflects the classic GAN trade-off between realism and signal strength.
+
+3. **Improved Robustness to Rotation**  
+Rotation accuracy remains relatively strong (~76% at 15°), with smoother degradation compared to earlier experiments. The discriminator likely encourages learning more globally consistent features, improving geometric robustness.
+
+4. **Blur Robustness Moderately Improved**  
+Compared to earlier setups, performance at σ=1.0 (~73%) is slightly better than typical drops (~60–65%), suggesting adversarial training helps resist mild smoothing, though high blur still degrades performance significantly.
+
+5. **Perceptual Quality Decreased (Lower PSNR)**  
+PSNR drops to ~25.5 dB, much lower than non-adversarial setups. This indicates that while images look more “natural” to the discriminator, they deviate more from the original pixel-wise (GAN effect).
+
+6. **Training Instability Observed**  
+Fluctuations in clean accuracy during later epochs (e.g., drop at epoch 130) suggest mild GAN instability. This is expected when jointly optimizing encoder, decoder, and discriminator.
+
+7. **Exact Recovery Still Fails**  
+Despite reasonable bit accuracy (70–85%), exact 12-character hex recovery is 0% under attacks. Small bit errors accumulate, confirming the need for error-correcting codes (e.g., BCH, Reed-Solomon).
+
+8. **Curriculum Learning Effective**  
+Gradual introduction of blur (epoch 15) and rotation (epoch 80) avoids catastrophic collapse and allows stable convergence, even with adversarial training.
+
+<img width="1052" height="367" alt="metrics_plot_9" src="https://github.com/user-attachments/assets/40a2289b-7c46-442a-8737-03b79b811331" />
+
+<img width="1053" height="272" alt="qualitative_plot_9" src="https://github.com/user-attachments/assets/9120ae66-a7f3-4921-8597-89c84d0a00ba" />

@@ -499,4 +499,3 @@ with open(f"{save_dir}/results.txt", 'w') as f:
     f.write(f"Best training accuracy: {best_acc:.2%}\n")
 
 print(f"\nSaved to '{save_dir}/'")
-print(f"\nDONE! Check the visualization and results above.")

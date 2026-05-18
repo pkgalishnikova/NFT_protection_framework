@@ -30,22 +30,20 @@ def get_img_batch(files_list,
             img_cover = Image.open(img_cover_path).convert("RGB")
             img_cover = ImageOps.fit(img_cover, size)
             img_cover = np.array(img_cover, dtype=np.float32) / 255.
-            # 🔑 Ensure correct shape
-            if img_cover.ndim == 2:  # grayscale → RGB
+            if img_cover.ndim == 2:
                 img_cover = np.stack([img_cover]*3, axis=-1)
             assert img_cover.shape == (size[0], size[1], 3), f"Wrong shape: {img_cover.shape}"
         except Exception as e:
-            print(f"⚠️ Failed to load {img_cover_path}: {e}")
+            print(f"Failed to load {img_cover_path}: {e}")
             img_cover = np.zeros((size[0], size[1], 3), dtype=np.float32)
         batch_cover.append(img_cover)
 
         secret = np.random.binomial(1, .5, secret_size)
         batch_secret.append(secret)
 
-    batch_cover = np.array(batch_cover)  # shape: [B, H, W, C]
-    batch_secret = np.array(batch_secret)  # shape: [B, S]
+    batch_cover = np.array(batch_cover)
+    batch_secret = np.array(batch_secret)
     
-    # 🔑 Final shape check
     assert batch_cover.shape[1:] == (size[0], size[1], 3), f"batch_cover shape: {batch_cover.shape}"
     return batch_cover, batch_secret
 
@@ -99,14 +97,12 @@ def main():
     from os.path import join
 
     files_list = glob.glob(join(TRAIN_PATH, "**", "*"), recursive=True)
-    # Keep only image files (case-insensitive)
     files_list = [f for f in files_list
                   if os.path.isfile(f) and f.lower().endswith(('.png', '.jpg', '.jpeg'))]
 
-    # 🔎 Debug: verify data loaded
-    print(f"✅ Loaded {len(files_list)} image(s) from: {TRAIN_PATH}")
+    print(f"Loaded {len(files_list)} image(s) from: {TRAIN_PATH}")
     if not files_list:
-        raise RuntimeError("🛑 No images found! Check TRAIN_PATH and file extensions.")
+        raise RuntimeError("No images found! Check TRAIN_PATH and file extensions.")
     else:
         print(f"   Example: {files_list[0]}")
 
@@ -146,8 +142,7 @@ def main():
             args=args,
             global_step=global_step_tensor)
 
-    tvars=tf.compat.v1.trainable_variables()  #returns all variables created(the two variable scopes) and makes trainable true
-
+    tvars=tf.compat.v1.trainable_variables()
 
     d_vars=[var for var in tvars if 'discriminator' in var.name]
     g_vars=[var for var in tvars if 'stega_stamp' in var.name]

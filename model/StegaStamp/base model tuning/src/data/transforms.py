@@ -1,8 +1,6 @@
 def differentiable_blur(img, sigma_range=(0.0, 2.0)):
-    """Differentiable Gaussian blur using torch operations"""
     B, C, H, W = img.shape
 
-    # Random sigma for each image in batch
     if training_mode:
         sigmas = [random.uniform(*sigma_range) for _ in range(B)]
         kernel_size = random.choice([3, 5])
@@ -18,7 +16,6 @@ def differentiable_blur(img, sigma_range=(0.0, 2.0)):
     return torch.cat(blurred, dim=0)
 
 def simple_attack(img):
-    """Non-differentiable blur for evaluation only"""
     B, C, H, W = img.shape
     imgs_out = []
 

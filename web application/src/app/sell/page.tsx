@@ -1,7 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ConnectButton, useActiveAccount } from "thirdweb/react";
-import { client } from "../client";
 
 const GridCanvas = () => {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -97,22 +95,22 @@ type VerifyResult = { match: boolean; extracted: string; wallet: string; bits_ac
 const ResultCard = ({ result, onReset }: { result: VerifyResult; onReset: () => void }) => {
   const getConfidence = (acc: number) => {
     if (acc >= 90) return {
-      emoji: "✅", title: "Ownership Verified",
-      subtitle: "Watermark strongly matches your wallet address",
+      title: "Ownership Verified",
+      subtitle: "Watermark strongly matches the provided wallet address",
       color: "#00ffc8", bg: "rgba(0,255,200,0.06)", border: "rgba(0,255,200,0.3)",
     };
     if (acc >= 70) return {
-      emoji: "🔍", title: "Likely Your NFT",
-      subtitle: "Partial watermark match — you are probably the original owner",
+      title: "Likely Your NFT",
+      subtitle: "Partial watermark match - this is probably the original owner's NFT",
       color: "#60a5fa", bg: "rgba(96,165,250,0.06)", border: "rgba(96,165,250,0.3)",
     };
     if (acc >= 50) return {
-      emoji: "⚠️", title: "Possible Match",
+      title: "Possible Match",
       subtitle: "Weak signal — image may have been compressed or edited",
       color: "#fbbf24", bg: "rgba(251,191,36,0.06)", border: "rgba(251,191,36,0.3)",
     };
     return {
-      emoji: "❌", title: "No Match Detected",
+      title: "No Match Detected",
       subtitle: "Watermark does not match this wallet — or image was heavily modified",
       color: "#f87171", bg: "rgba(248,113,113,0.06)", border: "rgba(248,113,113,0.3)",
     };
@@ -124,7 +122,6 @@ const ResultCard = ({ result, onReset }: { result: VerifyResult; onReset: () => 
     <div className="space-y-4">
       <div className="rounded-xl p-6 text-center"
         style={{ background: confidence.bg, border: `1px solid ${confidence.border}` }}>
-        <div className="text-4xl mb-3">{confidence.emoji}</div>
         <div className="font-mono text-lg font-bold mb-1" style={{ color: confidence.color }}>
           {confidence.title}
         </div>
@@ -152,7 +149,7 @@ const ResultCard = ({ result, onReset }: { result: VerifyResult; onReset: () => 
       {result.bits_accuracy < 90 && (
         <div className="rounded-xl p-4 font-mono text-xs text-white/25 space-y-1"
           style={{ background: "rgba(255,255,255,0.01)", border: "1px solid rgba(255,255,255,0.04)" }}>
-          <div className="text-white/40 mb-1">ℹ️ Why isn't this definitive?</div>
+          <div className="text-white/40 mb-1">Why isn't this definitive?</div>
           <div>· Image compression or resizing can degrade the watermark signal</div>
           <div>· Model accuracy improves with more training data</div>
           <div>· Cross-reference with on-chain ownership for full certainty</div>
@@ -169,8 +166,8 @@ const ResultCard = ({ result, onReset }: { result: VerifyResult; onReset: () => 
 };
 
 export default function VerifyPage() {
-  const account = useActiveAccount();
-  const wallet = account?.address ?? null;
+  const [wallet, setWallet] = useState<string>("");
+  const [walletError, setWalletError] = useState<string | null>(null);
 
   const [mounted, setMounted] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -182,7 +179,7 @@ export default function VerifyPage() {
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    if (!wallet) { setStep(1); return; }
+    if (!wallet || wallet.length < 10) { setStep(1); return; }
     if (!file) { setStep(2); return; }
     setStep(3);
   }, [wallet, file]);
@@ -204,7 +201,7 @@ export default function VerifyPage() {
       formData.append("image", file);
       formData.append("wallet_address", wallet);
 
-      const res = await fetch("http://localhost:8000/verify", {
+      const res = await fetch("https://polar-expire-postage.ngrok-free.dev/verify", {
         method: "POST",
         body: formData,
       });
@@ -271,12 +268,12 @@ export default function VerifyPage() {
               Extract & Verify
             </h1>
             <p className="text-white/40 text-sm leading-relaxed">
-              Connect your wallet, upload a watermarked NFT, and we'll extract the hidden signature to confirm you're the rightful owner.
+              Paste a wallet address, upload a watermarked NFT, and we'll extract the hidden signature to confirm whether that address is the rightful owner.
             </p>
           </div>
 
           <div className="fade-up flex items-center mb-8" style={{ animationDelay: "0.1s", opacity: 0 }}>
-            <Step n={1} label="Connect Wallet" active={step === 1} done={step > 1} />
+            <Step n={1} label="Wallet Address" active={step === 1} done={step > 1} />
             <Divider />
             <Step n={2} label="Upload NFT" active={step === 2} done={step > 2} />
             <Divider />
@@ -289,25 +286,22 @@ export default function VerifyPage() {
               <label className="font-mono text-xs text-white/40 uppercase tracking-widest block mb-3">
                 01 · Wallet Address
               </label>
-              {wallet ? (
-                <div className="flex items-center justify-between px-4 py-3 rounded-xl"
-                  style={{ background: "rgba(0,255,200,0.06)", border: "1px solid rgba(0,255,200,0.2)" }}>
-                  <div>
-                    <div className="font-mono text-xs text-cyan-400/60 mb-0.5">Connected</div>
-                    <div className="font-mono text-sm text-cyan-300">
-                      {wallet.slice(0, 6)}…{wallet.slice(-4)}
-                    </div>
-                  </div>
-                  <ConnectButton client={client} />
-                </div>
-              ) : (
-                <ConnectButton
-                  client={client}
-                  connectButton={{
-                    label: "Connect Wallet",
-                    className: "btn-cyan w-full py-3.5 rounded-xl font-mono text-sm tracking-wide !w-full",
-                  }}
-                />
+              <input
+                type="text"
+                placeholder="0x..."
+                value={wallet}
+                onChange={(e) => {
+                  setWallet(e.target.value);
+                  setWalletError(null);
+                }}
+                className="w-full px-4 py-3 rounded-xl font-mono text-sm text-cyan-300 outline-none transition-all"
+                style={{
+                  background: "rgba(0,255,200,0.06)",
+                  border: `1px solid ${walletError ? "rgba(248,113,113,0.5)" : "rgba(0,255,200,0.2)"}`,
+                }}
+              />
+              {walletError && (
+                <p className="font-mono text-xs mt-1" style={{ color: "#f87171" }}>{walletError}</p>
               )}
             </div>
 
@@ -340,7 +334,7 @@ export default function VerifyPage() {
                       style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
                       <div>① Watermark extracted from image via decoder</div>
                       <div>② Extracted bits converted back to address</div>
-                      <div>③ Compared against your connected wallet address</div>
+                      <div>③ Compared against the provided wallet address</div>
                     </div>
                   )}
 

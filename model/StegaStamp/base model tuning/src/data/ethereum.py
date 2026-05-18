@@ -1,5 +1,4 @@
 def ethereum_to_bits(address, num_bits=100):
-    """Convert Ethereum address to binary (hex-based)"""
     if address.startswith('0x') or address.startswith('0X'):
         address = address[2:]
 
@@ -13,7 +12,6 @@ def ethereum_to_bits(address, num_bits=100):
 
 
 def bits_to_ethereum(bits, num_bits=100, original_secret=SECRET_SHORT):
-    """Convert binary back to Ethereum address format"""
     bits_np = (bits[:num_bits] > 0.5).cpu().numpy().astype(np.uint8)
     binary_str = ''.join([str(int(b)) for b in bits_np])
 
@@ -29,7 +27,7 @@ def bits_to_ethereum(bits, num_bits=100, original_secret=SECRET_SHORT):
         return "0x" + "?"*original_hex_len
 
 SECRET_STR = "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D"
-print(f"🔐 Full address: {SECRET_STR}")
+print(f"Full address: {SECRET_STR}")
 
 SECRET_SHORT = SECRET_STR[:12]  # "0xBC4CA0EdA7"
 MESSAGE_LEN = 100  # bits

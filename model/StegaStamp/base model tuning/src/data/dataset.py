@@ -1,12 +1,12 @@
-print("\n📥 Preparing dataset...")
+print("\nPreparing dataset...")
 
 coco_path = "val2017"
 if os.path.exists(coco_path):
     import glob
     img_paths = glob.glob(os.path.join(coco_path, "*.jpg"))[:1500]
-    print(f"✅ Found {len(img_paths)} COCO images")
+    print(f"Found {len(img_paths)} COCO images")
 else:
-    print("⚠️ COCO not found. Creating 200 synthetic images...")
+    print("COCO not found. Creating 200 synthetic images...")
     os.makedirs("synthetic", exist_ok=True)
     img_paths = []
 
@@ -27,7 +27,7 @@ else:
         img.save(path)
         img_paths.append(path)
 
-    print(f"✅ Created {len(img_paths)} synthetic images")
+    print(f"Created {len(img_paths)} synthetic images")
 
 
 class SimpleDataset(Dataset):
@@ -56,4 +56,4 @@ dataset = SimpleDataset(img_paths)
 loader = DataLoader(dataset, batch_size=16, shuffle=True,
                    num_workers=2, pin_memory=True, drop_last=True)
 
-print(f"✅ Dataset ready: {len(dataset)} images, batch size 16")
+print(f"Dataset ready: {len(dataset)} images, batch size 16")

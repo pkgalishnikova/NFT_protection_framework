@@ -109,7 +109,7 @@ def ethereum_to_bits(address, num_bits=100):
     
     return bits
 
-def bits_to_ethereum(bits, num_bits=100):
+def bits_to_ethereum(bits, num_bits=100, original_secret=SECRET_SHORT):
     bits_np = (bits[:num_bits] > 0.5).cpu().numpy().astype(np.uint8)
     binary_str = ''.join([str(int(b)) for b in bits_np])
     
@@ -117,9 +117,12 @@ def bits_to_ethereum(bits, num_bits=100):
         hex_value = hex(int(binary_str, 2))[2:].upper()
         num_hex_chars = num_bits // 4
         hex_value = hex_value.zfill(num_hex_chars)
-        return '0x' + hex_value
+        
+        original_hex_len = len(original_secret) - 2
+        return '0x' + hex_value[:original_hex_len]
     except:
-        return "0x" + "?"*(num_bits // 4)
+        original_hex_len = len(original_secret) - 2
+        return "0x" + "?"*original_hex_len
 
 def simple_attack(img):
     from io import BytesIO
@@ -144,9 +147,9 @@ def simple_attack(img):
     imgs_out = torch.stack(imgs_out).to(img.device)
     return imgs_out * 2 - 1
 
-print("\n📥 Preparing dataset...")
+print("\nPreparing dataset...")
 
-coco_path = "./coco/train2017"
+coco_path = "val2017"
 if os.path.exists(coco_path):
     import glob
     img_paths = glob.glob(os.path.join(coco_path, "*.jpg"))[:500]
@@ -293,7 +296,7 @@ while step < max_steps:
                 if target_acc > best_target_acc:
                     best_target_acc = target_acc
                     if target_acc > 0.70:
-                        print(f"  ⭐ New best: {best_target_acc:.1%}")
+                        print(f"New best: {best_target_acc:.1%}")
 
         step += 1
 

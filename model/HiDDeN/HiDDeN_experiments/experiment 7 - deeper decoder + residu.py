@@ -18,7 +18,7 @@ import kornia.geometry.transform as KGT
 import kornia.filters as KF
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-print(f"🖥️ Device: {DEVICE}")
+print(f"Device: {DEVICE}")
 
 SECRET_STR = "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D"
 SECRET_SHORT = SECRET_STR[:12]

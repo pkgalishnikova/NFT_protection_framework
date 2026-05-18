@@ -12,36 +12,27 @@ import matplotlib.pyplot as plt
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-# ==============================
-# 1. INSTALL reedsolo
-# ==============================
 try:
     import reedsolo
 except ImportError:
-    print("🔧 Installing reedsolo...")
+    print("Installing reedsolo...")
     import subprocess
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "reedsolo"])
     import reedsolo
 
-# ==============================
-# 2. CONFIG: Full Ethereum address (42 chars = 336 bits)
-# ==============================
 SECRET_STR = "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D"
 assert len(SECRET_STR) == 42, f"Expected 42-char Ethereum address, got {len(SECRET_STR)}"
 
 SECRET_BYTES = 42
-SECRET_LEN = SECRET_BYTES * 8  # 336 bits
-PARITY_BYTES = 20              # Reed-Solomon parity
-ECC_LEN = (SECRET_BYTES + PARITY_BYTES) * 8  # (42+20)*8 = 496 bits
+SECRET_LEN = SECRET_BYTES * 8
+PARITY_BYTES = 20
+ECC_LEN = (SECRET_BYTES + PARITY_BYTES) * 8
 
 RS = reedsolo.RSCodec(PARITY_BYTES)
 
-print(f"🔐 Secret: {SECRET_STR}")
-print(f"📊 Secret bits: {SECRET_LEN}, ECC bits: {ECC_LEN}")
+print(f"Secret: {SECRET_STR}")
+print(f"Secret bits: {SECRET_LEN}, ECC bits: {ECC_LEN}")
 
-# ==============================
-# 3. MODELS (scaled for 336-bit secret)
-# ==============================
 class StegaStampEncoder(nn.Module):
     def __init__(self, secret_len=SECRET_LEN):
         super().__init__()
@@ -89,9 +80,6 @@ class StegaStampDecoder(nn.Module):
     def forward(self, x):
         return self.head(self.net(x).flatten(1))
 
-# ==============================
-# 4. UTILS: Bit conversion & ECC
-# ==============================
 def text_to_bits(s, secret_bytes=SECRET_BYTES):
     s = s.encode('utf-8')
     if len(s) > secret_bytes:
@@ -133,7 +121,7 @@ def decode_ecc(logits):
 
 def distort(img, training=True):
     B, C, H, W = img.shape
-    x = (img + 1) / 2  # [-1,1] -> [0,1]
+    x = (img + 1) / 2
     from io import BytesIO
     pil_imgs = []
     for i in range(B):
@@ -158,9 +146,6 @@ def distort(img, training=True):
     x = torch.stack(pil_imgs).to(img.device)
     return torch.clamp(x, 0, 1) * 2 - 1
 
-# ==============================
-# 5. DOWNLOAD FIRST 100 COCO IMAGES
-# ==============================
 def download_coco_100():
     data_dir = "./coco"
     img_dir = os.path.join(data_dir, "train2017")
@@ -168,9 +153,8 @@ def download_coco_100():
     os.makedirs(img_dir, exist_ok=True)
     os.makedirs(os.path.dirname(ann_file), exist_ok=True)
 
-    # Download annotations if missing
     if not os.path.exists(ann_file):
-        print("⬇️  Downloading COCO annotations...")
+        print("Downloading COCO annotations...")
         url = "http://images.cocodataset.org/annotations/annotations_trainval2017.zip"
         r = requests.get(url, stream=True)
         zip_path = os.path.join(data_dir, "annotations.zip")
@@ -180,13 +164,12 @@ def download_coco_100():
             zip_ref.extractall(data_dir)
         os.remove(zip_path)
 
-    # Get first 100 image URLs
     from pycocotools.coco import COCO
     coco = COCO(ann_file)
     img_ids = list(coco.imgs.keys())[:100]
     img_info = [coco.imgs[i] for i in img_ids]
 
-    print("⬇️  Downloading first 100 COCO train images...")
+    print("Downloading first 100 COCO train images...")
     img_paths = []
     for i, info in enumerate(img_info):
         path = os.path.join(img_dir, info['file_name'])
@@ -198,7 +181,7 @@ def download_coco_100():
                     for chunk in r.iter_content(1024):
                         f.write(chunk)
             except Exception as e:
-                print(f"⚠️  Skip {info['file_name']}: {e}")
+                print(f"Skip {info['file_name']}: {e}")
                 continue
         img_paths.append(path)
         if (i + 1) % 20 == 0:
@@ -206,18 +189,17 @@ def download_coco_100():
 
     return img_paths
 
-print("🔍 Setting up COCO-100 dataset...")
+print("Setting up COCO-100 dataset...")
 try:
     from pycocotools.coco import COCO
 except ImportError:
-    print("📦 Installing pycocotools...")
+    print("Installing pycocotools...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "pycocotools"])
     from pycocotools.coco import COCO
 
 img_paths = download_coco_100()
-print(f"✅ Loaded {len(img_paths)} COCO images")
+print(f"Loaded {len(img_paths)} COCO images")
 
-# Dataset class
 class ImagePathDataset(Dataset):
     def __init__(self, paths, transform=None):
         self.paths = paths
@@ -239,17 +221,14 @@ transform = T.Compose([
 dataset = ImagePathDataset(img_paths, transform=transform)
 train_loader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=2, pin_memory=True)
 
-# ==============================
-# 6. TRAINING
-# ==============================
 enc = StegaStampEncoder().to(DEVICE)
 dec = StegaStampDecoder().to(DEVICE)
 opt = torch.optim.Adam(list(enc.parameters()) + list(dec.parameters()), lr=1e-4)
 
-print("\n🏋️ Training on COCO-100 for Ethereum address embedding...")
+print("\nTraining on COCO-100 for Ethereum address embedding...")
 enc.train(); dec.train()
 total_steps = 0
-max_steps = 600  # ~75 epochs over 100 images
+max_steps = 600
 
 while total_steps < max_steps:
     for images in train_loader:
@@ -274,27 +253,23 @@ while total_steps < max_steps:
         if total_steps >= max_steps:
             break
 
-print("✅ Training complete.")
+print("Training complete.")
 
-# ==============================
-# 7. INFERENCE ON USER IMAGE
-# ==============================
-print("\n📤 Please upload an image (JPG/PNG)")
+print("\nPlease upload an image (JPG/PNG)")
 
 try:
     from google.colab import files
     uploaded = files.upload()
     img_path = list(uploaded.keys())[0]
-    print(f"✅ Uploaded: {img_path}")
+    print(f"Uploaded: {img_path}")
 except:
-    print("ℹ️  No upload — using demo image")
+    print("No upload - using demo image")
     demo_img = Image.new('RGB', (400, 400), (240, 240, 240))
     draw = ImageDraw.Draw(demo_img)
     draw.rectangle([80, 80, 320, 320], fill=(60, 120, 220))
     demo_img.save("/tmp/demo.jpg")
     img_path = "/tmp/demo.jpg"
 
-# Preprocess
 orig_pil = Image.open(img_path).convert("RGB")
 transform_inf = T.Compose([
     T.Resize((256, 256)),
@@ -303,7 +278,6 @@ transform_inf = T.Compose([
 ])
 img_tensor = transform_inf(orig_pil).unsqueeze(0).to(DEVICE)
 
-# Encode full Ethereum address
 secret_bits = text_to_bits(SECRET_STR).unsqueeze(0).to(DEVICE)
 
 enc.eval(); dec.eval()
@@ -315,13 +289,10 @@ with torch.no_grad():
     recovered_text = bits_to_text(recovered_bits[0])
     bit_acc = (recovered_bits[0] == secret_bits[0]).float().mean().item()
 
-print(f"\n🔤 Original: {SECRET_STR}")
-print(f"🔓 Recovered: {recovered_text}")
-print(f"✅ Bit accuracy: {bit_acc:.2%}")
+print(f"\nOriginal: {SECRET_STR}")
+print(f"Recovered: {recovered_text}")
+print(f"Bit accuracy: {bit_acc:.2%}")
 
-# ==============================
-# 8. VISUALIZE
-# ==============================
 def to_pil(t):
     return T.ToPILImage()(((t[0] + 1) / 2).clamp(0, 1).cpu())
 
@@ -339,13 +310,10 @@ plt.suptitle("StegaStamp: Ethereum Address Embedding (Trained on COCO-100)", fon
 plt.tight_layout()
 plt.show()
 
-# ==============================
-# 9. SAVE OUTPUT
-# ==============================
 save_dir = "stegastamp_eth"
 os.makedirs(save_dir, exist_ok=True)
 to_pil(watermarked).save(f"{save_dir}/watermarked.png")
 to_pil(captured).save(f"{save_dir}/captured.png")
 torch.save(enc.state_dict(), f"{save_dir}/encoder.pth")
 torch.save(dec.state_dict(), f"{save_dir}/decoder.pth")
-print(f"\n💾 Saved to '{save_dir}/'")
+print(f"\nSaved to '{save_dir}/'")

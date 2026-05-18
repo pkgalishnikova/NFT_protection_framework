@@ -1,15 +1,10 @@
 def to_pil(t):
     return T.ToPILImage()(((t[0]+1)/2).clamp(0,1).cpu())
 
-# Extract residual for visualization
 raw_residual, scaled_residual = extract_residual(enc, img_tensor, target_tensor, alpha_scale=15)
 
-# ==============================
-# 1. ATTACK STRENGTH ANALYSIS
-# ==============================
-print("\n📊 Analyzing bit accuracy vs attack strength...")
+print("\nAnalyzing bit accuracy vs attack strength...")
 
-# Test different blur strengths
 blur_sigmas = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
 bit_accuracies = []
 
@@ -18,10 +13,8 @@ dec.eval()
 
 for sigma in blur_sigmas:
     if sigma == 0.0:
-        # No attack
         attacked = watermarked
     else:
-        # Apply blur with specific sigma
         B, C, H, W = watermarked.shape
         attacked_imgs = []
         for i in range(B):
@@ -40,14 +33,9 @@ for sigma in blur_sigmas:
 
     print(f"   σ={sigma:.1f}: {acc*100:.1f}% accuracy")
 
-# ==============================
-# 2. MAIN VISUALIZATION
-# ==============================
-
 fig = plt.figure(figsize=(20, 10))
 gs = fig.add_gridspec(2, 4, hspace=0.3, wspace=0.2)
 
-# Row 1: Main images (4 images)
 ax1 = fig.add_subplot(gs[0, 0])
 ax1.imshow(orig_pil)
 ax1.set_title("Original", fontsize=12, fontweight='bold')
@@ -71,9 +59,6 @@ ax4.set_title(f"After Blur Attack\n'{results['Blur'][2]}'\nAcc: {results['Blur']
              fontsize=11, fontweight='bold')
 ax4.axis('off')
 
-# Row 2: Attack strength analysis graph (spanning 3 columns) + residual stats (1 column)
-
-# Plot: Bit Accuracy vs Attack Strength
 ax_graph = fig.add_subplot(gs[1, :3])
 ax_graph.plot(blur_sigmas, bit_accuracies, 'o-', linewidth=2, markersize=8, color='#2E86AB')
 ax_graph.axhline(y=50, color='red', linestyle='--', alpha=0.5, label='Random guess (50%)')
@@ -85,7 +70,6 @@ ax_graph.set_title('Watermark Robustness vs Gaussian Blur Attack', fontsize=12, 
 ax_graph.set_ylim([0, 105])
 ax_graph.legend(loc='best')
 
-# Add value labels on points
 for sigma, acc in zip(blur_sigmas, bit_accuracies):
     ax_graph.annotate(f'{acc:.1f}%',
                      xy=(sigma, acc),
@@ -95,7 +79,6 @@ for sigma, acc in zip(blur_sigmas, bit_accuracies):
                      fontsize=8,
                      alpha=0.7)
 
-# Residual statistics text
 ax_text = fig.add_subplot(gs[1, 3])
 ax_text.axis('off')
 
@@ -134,13 +117,9 @@ plt.savefig('watermark_analysis.png', dpi=150, bbox_inches='tight')
 plt.savefig('watermark_analysis.pdf', dpi=150, bbox_inches='tight')
 plt.show()
 
-print(f"\n💾 Visualization saved as: watermark_analysis.png")
+print(f"\nVisualization saved as: watermark_analysis.png")
 
-# ==============================
-# 3. DETAILED CONSOLE OUTPUT
-# ==============================
-
-print(f"\n🎨 Residual Statistics:")
+print(f"\nResidual Statistics:")
 print(f"   - Mean: {raw_residual.mean().item():.6f}")
 print(f"   - Std: {raw_residual.std().item():.6f}")
 print(f"   - Min: {raw_residual.min().item():.6f}")
@@ -162,7 +141,7 @@ with torch.no_grad():
 
     watermark_diff = (watermarked - img_tensor).abs()
 
-    print(f"\n📊 Residual Pipeline:")
+    print(f"\nResidual Pipeline:")
     print(f"   Raw decoder output:")
     print(f"     Mean: {residual_raw_decoder.mean().item():.6f}, Std: {residual_raw_decoder.std().item():.6f}")
     print(f"   After tanh:")
@@ -173,5 +152,3 @@ with torch.no_grad():
     print(f"     Mean: {watermark_diff.mean().item():.6f}, Max: {watermark_diff.max().item():.6f}")
     print(f"     Pixels changed >0.01: {(watermark_diff > 0.01).float().mean().item()*100:.2f}%")
     print(f"     Pixels changed >0.1: {(watermark_diff > 0.1).float().mean().item()*100:.2f}%")
-
-print(f"\n✅ DONE!")

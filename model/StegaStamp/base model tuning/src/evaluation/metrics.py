@@ -1,5 +1,4 @@
 def calculate_psnr(img1, img2):
-    """Calculate PSNR between two images (range [-1, 1])"""
     mse = F.mse_loss(img1, img2)
     if mse < 1e-10:
         return 100.0
@@ -9,7 +8,6 @@ def calculate_psnr(img1, img2):
 
 
 def calculate_tpr(predictions, targets, threshold=0.5):
-    """Calculate True Positive Rate"""
     pred_bits = (predictions > threshold).float()
     target_bits = targets.float()
     tp = ((pred_bits == 1) & (target_bits == 1)).float().sum()
@@ -18,11 +16,9 @@ def calculate_tpr(predictions, targets, threshold=0.5):
     return tpr.item()
 
 def load_clip_model(device='cuda'):
-    """Load CLIP model (only once)"""
     model, preprocess = clip.load("ViT-B/32", device=device)
     return model, preprocess
 
-# Global CLIP model (load once)
 CLIP_MODEL, CLIP_PREPROCESS = None, None
 
 def init_clip():
@@ -31,57 +27,37 @@ def init_clip():
         CLIP_MODEL, CLIP_PREPROCESS = load_clip_model(DEVICE)
 
 def tensor_to_pil(img_tensor):
-    """Convert [-1,1] tensor to PIL Image"""
     img = (img_tensor + 1) / 2  # [-1,1] → [0,1]
     img = torch.clamp(img, 0, 1)
     return T.ToPILImage()(img.cpu())
 
 def calculate_clip_metrics(original_img, watermarked_img, secret_text):
-    """
-    Calculate all 3 CLIP-based metrics
-    Args:
-        original_img: Tensor [B, C, H, W] in [-1, 1]
-        watermarked_img: Tensor [B, C, H, W] in [-1, 1]
-        secret_text: str (e.g., "0xBC4CA0EdA7")
-    Returns:
-        dict with CLIPdir, CLIPimg, CLIPout
-    """
     init_clip()
 
-    # Convert tensors to PIL images
     orig_pil = tensor_to_pil(original_img[0])
     wm_pil = tensor_to_pil(watermarked_img[0])
 
-    # Preprocess images for CLIP
     orig_clip = CLIP_PREPROCESS(orig_pil).unsqueeze(0).to(DEVICE)
     wm_clip = CLIP_PREPROCESS(wm_pil).unsqueeze(0).to(DEVICE)
 
-    # Encode images
     with torch.no_grad():
         orig_features = CLIP_MODEL.encode_image(orig_clip)
         wm_features = CLIP_MODEL.encode_image(wm_clip)
 
-        # Text encoding
         text_tokens = clip.tokenize([secret_text]).to(DEVICE)
         text_features = CLIP_MODEL.encode_text(text_tokens)
 
-    # Normalize features
     orig_features = orig_features / orig_features.norm(dim=-1, keepdim=True)
     wm_features = wm_features / wm_features.norm(dim=-1, keepdim=True)
     text_features = text_features / text_features.norm(dim=-1, keepdim=True)
 
-    # (1) CLIP image similarity (original vs watermarked)
     clip_img = (orig_features @ wm_features.T).item()
 
-    # (2) CLIP output similarity (watermarked vs text)
     clip_out = (wm_features @ text_features.T).item()
 
-    # (3) CLIP direction similarity
-    # Direction vectors
     orig_to_wm = wm_features - orig_features
     orig_to_text = text_features - orig_features
 
-    # Normalize direction vectors
     orig_to_wm = orig_to_wm / orig_to_wm.norm(dim=-1, keepdim=True)
     orig_to_text = orig_to_text / orig_to_text.norm(dim=-1, keepdim=True)
 
@@ -94,15 +70,9 @@ def calculate_clip_metrics(original_img, watermarked_img, secret_text):
     }
 
 def calculate_mse(original_img, watermarked_img):
-    """Calculate MSE between images"""
     return F.mse_loss(original_img, watermarked_img).item()
 
 def calculate_asr_and_ear(decoder, watermarked_img, target_secret, threshold=0.5, num_trials=10):
-    """
-    Calculate Attack Success Rate (ASR) and Error Attack Rate (EAR)
-    ASR: % of times we recover EXACT target secret
-    EAR: % of times we recover WRONG but valid secret
-    """
     recovered_secrets = []
 
     for _ in range(num_trials):

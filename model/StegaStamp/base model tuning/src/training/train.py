@@ -11,7 +11,6 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=3000, et
 
 target_secret = ethereum_to_bits(SECRET_SHORT, MESSAGE_LEN)
 
-print("\nCreating training secret pool...")
 train_secrets = []
 train_secrets.append(target_secret)
 
@@ -128,6 +127,5 @@ while step < max_steps:
 
         step += 1
 
-training_mode = False  # Done training
-print(f"\n✅ Training complete!")
+training_mode = False
 print(f"   Best target accuracy: {best_target_acc:.1%}")

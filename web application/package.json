@@ -13,12 +13,12 @@
     "@chakra-ui/react": "^2.10.9",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "framer-motion": "^12.35.2",
+    "framer-motion": "^12.38.0",
     "next": "15.4.10",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "react-hook-form": "^7.71.2",
-    "thirdweb": "^5"
+    "react-hook-form": "^7.75.0",
+    "thirdweb": "5.45.1"
   },
   "devDependencies": {
     "@types/node": "^20",

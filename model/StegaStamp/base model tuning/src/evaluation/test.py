@@ -1,8 +1,4 @@
-print("\n" + "="*70)
-print("TESTING")
-print("="*70)
-
-print("\n📤 Using demo image...")
+print("\nUsing demo image...")
 img_path = "/content/0.jpg"
 
 orig_pil = Image.open(img_path).convert("RGB")
@@ -28,13 +24,11 @@ with torch.no_grad():
 
     asr, ear, recovered_list = calculate_asr_and_ear(dec, watermarked, target_tensor, num_trials=20)
 
-    # Clean
     clean_logits = dec(watermarked)
     clean_pred = (torch.sigmoid(clean_logits) > 0.5).float()
     clean_acc = clean_pred.eq(target_tensor).float().mean().item()
     clean_recovered = bits_to_ethereum(clean_pred[0], MESSAGE_LEN)
 
-    # Attacked
     attacked_img = simple_attack(watermarked)
     attacked_logits = dec(attacked_img)
     attacked_pred = (torch.sigmoid(attacked_logits) > 0.5).float()
@@ -46,26 +40,25 @@ tests = {
     'Blur': simple_attack(watermarked),
 }
 
-print(f"\n🔐 Target Secret: '{SECRET_SHORT}'")
-print(f"📊 Watermark Quality:")
+print(f"\nTarget Secret: '{SECRET_SHORT}'")
+print(f"Watermark Quality:")
 print(f"   - PSNR: {psnr_wm:.2f} dB")
 print(f"   - MSE: {mse_val:.12f}")
-print(f"\n🎨 CLIP-Based Utility Metrics:")
+print(f"\nCLIP-Based Utility Metrics:")
 print(f"   - CLIPimg (image similarity): {clip_metrics['CLIPimg']:.4f}")
 print(f"   - CLIPout (text-image alignment): {clip_metrics['CLIPout']:.4f}")
 print(f"   - CLIPdir (direction similarity): {clip_metrics['CLIPdir']:.4f}")
-print(f"\n🎯 Specificity Metrics:")
+print(f"\nSpecificity Metrics:")
 print(f"   - Clean Accuracy: {clean_acc:.1%}")
 print(f"   - Attack Success Rate (ASR): {asr:.1%}")
 print(f"   - Error Attack Rate (EAR): {ear:.1%}")
 print(f"   - Sample Recovered: '{clean_recovered}'")
 
-# Show attack robustness
 print(f"\n🔍 Attack Robustness (20 trials):")
 unique_recovered = list(set(recovered_list))
 for i, addr in enumerate(unique_recovered[:5]):
     count = recovered_list.count(addr)
-    status = "✅ TARGET" if addr == SECRET_SHORT else "❌ WRONG"
+    status = "TARGET" if addr == SECRET_SHORT else "WRONG"
     print(f"   {addr} ({count}/20) {status}")
 
 results = {

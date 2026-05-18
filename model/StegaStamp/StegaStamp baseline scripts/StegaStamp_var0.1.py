@@ -32,12 +32,6 @@ import torch
 import torch.nn.functional as F
 
 def distort_image(img):
-    """
-    Simulate print-photo pipeline corruptions.
-    Input: img [B, 3, H, W] in [-1, 1]
-    Output: distorted img in same range
-    Device-agnostic: uses img.device
-    """
     device = img.device
     B, C, H, W = img.shape
 
@@ -48,7 +42,7 @@ def distort_image(img):
         quality = random.randint(60, 95)
         pil_imgs = []
         for i in range(B):
-            pil_img = TF.to_pil_image(img[i].cpu())  # move to CPU for PIL
+            pil_img = TF.to_pil_image(img[i].cpu())
             buffer = BytesIO()
             pil_img.save(buffer, format="JPEG", quality=quality)
             buffer.seek(0)
@@ -115,30 +109,23 @@ def train_step(encoder, decoder, optimizer, batch_size=8, secret_len=100):
     }
 
 class StegaStampEncoder(nn.Module):
-    """
-    StegaStamp Encoder: Embeds secret message into images
-    Based on: https://github.com/tancik/StegaStamp
-    """
     def __init__(self, secret_len=100, height=256, width=256):
         super().__init__()
         self.secret_len = secret_len
         self.height = height
         self.width = width
 
-        # Secret processing layers
         self.secret_dense = nn.Sequential(
             nn.Linear(secret_len, 7500),
             nn.ReLU(inplace=True)
         )
 
-        # Image encoder - all with padding=1 to maintain dimensions
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
         self.conv4 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
         self.conv5 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
 
-        # After concatenation with secret
         self.conv6 = nn.Conv2d(64 + 30, 64, kernel_size=3, stride=1, padding=1)
         self.conv7 = nn.Conv2d(64, 32, kernel_size=3, stride=1, padding=1)
         self.conv8 = nn.Conv2d(32, 3, kernel_size=3, stride=1, padding=1)
@@ -147,53 +134,35 @@ class StegaStampEncoder(nn.Module):
         self.tanh = nn.Tanh()
 
     def forward(self, image, secret):
-        """
-        Args:
-            image: [B, 3, H, W] input image normalized to [-1, 1]
-            secret: [B, secret_len] binary message {0, 1}
-        Returns:
-            watermarked_image: [B, 3, H, W] watermarked image
-        """
-        # Get actual image dimensions
         B, C, H, W = image.shape
 
-        # Process secret
-        secret_enlarged = self.secret_dense(secret)  # [B, 7500]
-        secret_enlarged = secret_enlarged.view(B, 30, 50, 5)  # Use B instead of -1
+        secret_enlarged = self.secret_dense(secret)
+        secret_enlarged = secret_enlarged.view(B, 30, 50, 5)
         secret_enlarged = F.interpolate(
             secret_enlarged,
             size=(H, W),
             mode='nearest'
         )
 
-        # Encode image
         x = self.relu(self.conv1(image))
         x = self.relu(self.conv2(x))
         x = self.relu(self.conv3(x))
         x = self.relu(self.conv4(x))
         x = self.relu(self.conv5(x))
 
-        # Concatenate with secret
         x = torch.cat([x, secret_enlarged], dim=1)
 
-        # Generate residual
         x = self.relu(self.conv6(x))
         x = self.relu(self.conv7(x))
         residual = self.tanh(self.conv8(x))
 
-        # Add residual to original image
         watermarked = image + residual
-
-        # Clamp to valid range
         watermarked = torch.clamp(watermarked, -1.0, 1.0)
 
         return watermarked
 
 
 class StegaStampDecoder(nn.Module):
-    """
-    StegaStamp Decoder: Extracts secret message from images
-    """
     def __init__(self, secret_len=100, height=256, width=256):
         super().__init__()
         self.secret_len = secret_len
@@ -203,15 +172,15 @@ class StegaStampDecoder(nn.Module):
         self.decoder = nn.Sequential(
             nn.Conv2d(3, 32, 3, stride=1, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(32, 32, 3, stride=2, padding=1),  # 128x128
+            nn.Conv2d(32, 32, 3, stride=2, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(32, 64, 3, stride=2, padding=1),  # 64x64
+            nn.Conv2d(32, 64, 3, stride=2, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, 3, stride=2, padding=1),  # 32x32
+            nn.Conv2d(64, 64, 3, stride=2, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, 3, stride=2, padding=1),  # 16x16
+            nn.Conv2d(64, 64, 3, stride=2, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, 3, stride=2, padding=1),  # 8x8
+            nn.Conv2d(64, 64, 3, stride=2, padding=1),
             nn.ReLU(inplace=True),
         )
 
@@ -222,12 +191,6 @@ class StegaStampDecoder(nn.Module):
         )
 
     def forward(self, image):
-        """
-        Args:
-            image: [B, 3, H, W] watermarked image
-        Returns:
-            secret_pred: [B, secret_len] predicted secret (logits)
-        """
         x = self.decoder(image)
         x = x.view(x.size(0), -1)
         secret_pred = self.dense(x)
@@ -354,13 +317,13 @@ input_path = "example/input/0.jpg"
 if os.path.exists(input_path):
     input_img_pil = Image.open(input_path).convert("RGB")
     input_img_pil = input_img_pil.resize((256, 256))
-    img_tensor = pil_to_tensor(input_img_pil, device=device)  # reuses your helper
+    img_tensor = pil_to_tensor(input_img_pil, device=device)
 
     secret = generate_random_message(1, SECRET_LEN).to(device)
 
     with torch.no_grad():
         wm = encoder(img_tensor, secret)
-        wm_dist = distort_image(wm)  # ← crucial for fair eval!
+        wm_dist = distort_image(wm)
         decoded = decoder(wm_dist)
         pred = (torch.sigmoid(decoded) > 0.5).float()
         acc = calculate_bit_accuracy(pred, secret)

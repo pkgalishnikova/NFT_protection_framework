@@ -112,7 +112,12 @@ export default function EmbedMintPage() {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [watermarkedUrl, setWatermarkedUrl] = useState<string | null>(null);
   const [step, setStep] = useState(1);
-  const { mutate: sendTx } = useSendTransaction();
+  const reset = () => {
+    setFile(null);
+    setStatus("idle");
+    setTxHash(null);
+    setWatermarkedUrl(null);
+  };
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -128,6 +133,7 @@ export default function EmbedMintPage() {
 
   const handleEmbedAndMint = async () => {
     if (!file || !wallet || !account) return;
+    const activeAccount = account;
 
     try {
       setStatus("embedding");
@@ -135,7 +141,7 @@ export default function EmbedMintPage() {
       formData.append("image", file);
       formData.append("wallet_address", wallet);
 
-      const embedRes = await fetch("http://localhost:8000/embed", {
+      const embedRes = await fetch("https://polar-expire-postage.ngrok-free.dev/embed", {
         method: "POST", body: formData,
       });
       if (!embedRes.ok) throw new Error("Embedding failed");
@@ -147,7 +153,7 @@ export default function EmbedMintPage() {
       ipfsForm.append("image", embedBlob, "watermarked.png");
       ipfsForm.append("name", file.name.replace(/\.[^.]+$/, "") || "My NFT");
 
-      const ipfsRes = await fetch("http://localhost:8000/upload-ipfs", {
+      const ipfsRes = await fetch("https://polar-expire-postage.ngrok-free.dev/upload-ipfs", {
         method: "POST", body: ipfsForm,
       });
       if (!ipfsRes.ok) throw new Error("IPFS upload failed");
@@ -159,26 +165,19 @@ export default function EmbedMintPage() {
         params: [token_uri, wallet],
       });
 
-      sendTx(transaction, {
-        onSuccess: (receipt) => {
-          setTxHash(receipt.transactionHash);
-          setStatus("done");
-        },
-        onError: (err) => {
-          console.error(err);
-          setStatus("error");
-        },
+      const receipt = await sendTransaction({
+        transaction,
+        account: activeAccount,
       });
+
+      setTxHash(receipt.transactionHash);
+      setStatus("done");
+
 
     } catch (err) {
       console.error(err);
       setStatus("error");
     }
-  };
-
-  const reset = () => {
-    setFile(null); setStatus("idle"); setTxHash(null);
-    setWatermarkedUrl(null);
   };
 
   return (
@@ -356,4 +355,4 @@ export default function EmbedMintPage() {
       </div>
     </>
   );
-}
+} 

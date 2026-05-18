@@ -11,25 +11,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-print(f"🖥️ Device: {DEVICE}")
+print(f"Device: {DEVICE}")
 
-# ==============================
-# CONFIG
-# ==============================
 SECRET_STR = "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D"
-print(f"🔐 Full address: {SECRET_STR}")
+print(f"Full address: {SECRET_STR}")
 
-SECRET_SHORT = SECRET_STR[:12]  # "0xBC4CA0EdA7"
-MESSAGE_LEN = 100  # bits
+SECRET_SHORT = SECRET_STR[:12]
+MESSAGE_LEN = 100
 
-print(f"📊 Using SHORT version: '{SECRET_SHORT}' ({MESSAGE_LEN} bits)")
-
-# ==============================
-# METRICS FUNCTIONS
-# ==============================
+print(f"Using SHORT version: '{SECRET_SHORT}' ({MESSAGE_LEN} bits)")
 
 def calculate_psnr(img1, img2):
-    """Calculate PSNR between two images (range [-1, 1])"""
     mse = F.mse_loss(img1, img2)
     if mse < 1e-10:
         return 100.0
@@ -37,20 +29,13 @@ def calculate_psnr(img1, img2):
     psnr = 20 * torch.log10(max_pixel / torch.sqrt(mse))
     return psnr.item()
 
-
 def calculate_tpr(predictions, targets, threshold=0.5):
-    """Calculate True Positive Rate"""
     pred_bits = (predictions > threshold).float()
     target_bits = targets.float()
     tp = ((pred_bits == 1) & (target_bits == 1)).float().sum()
     fn = ((pred_bits == 0) & (target_bits == 1)).float().sum()
     tpr = tp / (tp + fn + 1e-10)
     return tpr.item()
-
-
-# ==============================
-# ARCHITECTURE
-# ==============================
 
 class SimpleEncoder(nn.Module):
     def __init__(self, secret_len=100):
@@ -88,7 +73,6 @@ class SimpleEncoder(nn.Module):
         residual = torch.tanh(self.img_dec(fused))
         return torch.clamp(img + 0.15 * residual, -1, 1)
 
-
 class SimpleDecoder(nn.Module):
     def __init__(self, secret_len=100):
         super().__init__()
@@ -113,13 +97,7 @@ class SimpleDecoder(nn.Module):
         feat = self.conv(img).flatten(1)
         return self.fc(feat)
 
-
-# ==============================
-# FIXED UTILS
-# ==============================
-
 def ethereum_to_bits(address, num_bits=100):
-    """Convert Ethereum address to binary (hex-based)"""
     if address.startswith('0x') or address.startswith('0X'):
         address = address[2:]
     
@@ -131,9 +109,7 @@ def ethereum_to_bits(address, num_bits=100):
     
     return bits
 
-
 def bits_to_ethereum(bits, num_bits=100):
-    """Convert binary back to Ethereum address format"""
     bits_np = (bits[:num_bits] > 0.5).cpu().numpy().astype(np.uint8)
     binary_str = ''.join([str(int(b)) for b in bits_np])
     
@@ -145,9 +121,7 @@ def bits_to_ethereum(bits, num_bits=100):
     except:
         return "0x" + "?"*(num_bits // 4)
 
-
 def simple_attack(img):
-    """JPEG compression (Q=50) + Gaussian blur (σ=1.0)"""
     from io import BytesIO
     B, C, H, W = img.shape
     imgs_out = []
@@ -155,7 +129,6 @@ def simple_attack(img):
     for i in range(B):
         pil = T.ToPILImage()(((img[i] + 1) / 2).clamp(0, 1).cpu())
         
-        # JPEG compression
         buf = BytesIO()
         pil.save(buf, "JPEG", quality=50)
         buf.seek(0)
@@ -163,7 +136,6 @@ def simple_attack(img):
         
         img_tensor = T.ToTensor()(pil)
         
-        # Gaussian blur
         blur = T.GaussianBlur(kernel_size=5, sigma=1.0)
         img_tensor = blur(img_tensor)
         
@@ -172,20 +144,15 @@ def simple_attack(img):
     imgs_out = torch.stack(imgs_out).to(img.device)
     return imgs_out * 2 - 1
 
-
-# ==============================
-# DATASET
-# ==============================
-
 print("\n📥 Preparing dataset...")
 
 coco_path = "./coco/train2017"
 if os.path.exists(coco_path):
     import glob
     img_paths = glob.glob(os.path.join(coco_path, "*.jpg"))[:500]
-    print(f"✅ Found {len(img_paths)} COCO images")
+    print(f"Found {len(img_paths)} COCO images")
 else:
-    print("⚠️ COCO not found. Creating 200 synthetic images...")
+    print("COCO not found. Creating 200 synthetic images...")
     os.makedirs("synthetic", exist_ok=True)
     img_paths = []
     
@@ -206,8 +173,7 @@ else:
         img.save(path)
         img_paths.append(path)
     
-    print(f"✅ Created {len(img_paths)} synthetic images")
-
+    print(f"Created {len(img_paths)} synthetic images")
 
 class SimpleDataset(Dataset):
     def __init__(self, paths):
@@ -230,16 +196,11 @@ class SimpleDataset(Dataset):
         except:
             return torch.randn(3, 256, 256)
 
-
 dataset = SimpleDataset(img_paths)
 loader = DataLoader(dataset, batch_size=16, shuffle=True,
                    num_workers=2, pin_memory=True, drop_last=True)
 
-print(f"✅ Dataset ready: {len(dataset)} images, batch size 16")
-
-# ==============================
-# TRAINING
-# ==============================
+print(f"Dataset ready: {len(dataset)} images, batch size 16")
 
 print("\n" + "="*70)
 print("TRAINING")
@@ -253,20 +214,18 @@ optimizer = torch.optim.Adam(
     lr=2e-4
 )
 
-# Target secret (FIXED)
 target_secret = ethereum_to_bits(SECRET_SHORT, MESSAGE_LEN)
 
-# Create diverse training secrets (FIXED)
-print("\n🎲 Creating training secret pool...")
+print("\nCreating training secret pool...")
 train_secrets = []
 for i in range(30):
     rand_hex = '0x' + ''.join([format(random.randint(0, 15), 'X') for _ in range(MESSAGE_LEN // 4)])
     train_secrets.append(ethereum_to_bits(rand_hex, MESSAGE_LEN))
 
 train_secrets.append(target_secret)
-print(f"✅ Secret pool: {len(train_secrets)} diverse Ethereum addresses")
+print(f"Secret pool: {len(train_secrets)} diverse Ethereum addresses")
 
-print("\n🚀 Starting training...")
+print("\nStarting training...")
 print(f"   Target: '{SECRET_SHORT}'")
 print(f"   Expected time: ~20-30 minutes")
 print(f"   Goal: >70% accuracy\n")
@@ -338,18 +297,14 @@ while step < max_steps:
 
         step += 1
 
-print(f"\n✅ Training complete!")
+print(f"\nTraining complete!")
 print(f"   Best target accuracy: {best_target_acc:.1%}")
-
-# ==============================
-# TESTING
-# ==============================
 
 print("\n" + "="*70)
 print("TESTING")
 print("="*70)
 
-print("\n📤 Using demo image...")
+print("\nUsing demo image...")
 img_path = "/content/0.jpg"
 
 orig_pil = Image.open(img_path).convert("RGB")
@@ -383,14 +338,13 @@ with torch.no_grad():
         recovered = bits_to_ethereum(pred_bits[0], MESSAGE_LEN)
         results[name] = (acc, tpr, recovered)
 
-print(f"\n🔐 Target: '{SECRET_SHORT}'")
-print(f"📊 Watermark PSNR: {psnr_wm:.2f} dB")
-print(f"\n📊 Results:")
+print(f"\nTarget: '{SECRET_SHORT}'")
+print(f"Watermark PSNR: {psnr_wm:.2f} dB")
+print(f"\nResults:")
 for name, (acc, tpr, text) in results.items():
-    status = "✅" if acc > 0.70 else "❌"
+    status = "Okay" if acc > 0.70 else "Wrong"
     print(f"  {name:12s}: Acc={acc:5.1%} | TPR={tpr:5.1%} | '{text}' {status}")
 
-# Visualize
 def to_pil(t):
     return T.ToPILImage()(((t[0]+1)/2).clamp(0,1).cpu())
 
@@ -412,8 +366,7 @@ plt.suptitle(f"StegaStamp (Best: {best_target_acc:.1%})", fontsize=14, fontweigh
 plt.tight_layout()
 plt.show()
 
-print(f"\n✅ DONE!")
-print(f"\n📈 Final Metrics:")
+print(f"\nFinal Metrics:")
 print(f"   - Best Accuracy: {best_target_acc:.1%}")
 print(f"   - Watermark PSNR: {psnr_wm:.2f} dB")
 print(f"   - Clean TPR: {results['Clean'][1]:.1%}")

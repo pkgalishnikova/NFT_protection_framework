@@ -1,11 +1,3 @@
-print("TRAINING WITH IMPROVEMENTS")
-print("="*70)
-print("🔧 Changes:")
-print("   1. Alpha: 0.15 → 0.5 (stronger residuals)")
-print("   2. Differentiable blur (gradients flow to encoder)")
-print("   3. Secret loss weight: 1.0 → 2.0")
-print("="*70)
-
 enc = ImprovedEncoder(MESSAGE_LEN).to(DEVICE)
 dec = ImprovedDecoder(MESSAGE_LEN).to(DEVICE)
 
@@ -17,11 +9,9 @@ optimizer = torch.optim.Adam(
 
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=3000, eta_min=1e-5)
 
-# Target secret (FIXED)
 target_secret = ethereum_to_bits(SECRET_SHORT, MESSAGE_LEN)
 
-# Create diverse training secrets
-print("\n🎲 Creating training secret pool...")
+print("\nCreating training secret pool...")
 train_secrets = []
 train_secrets.append(target_secret)
 
@@ -29,21 +19,15 @@ for i in range(50):
     rand_hex = '0x' + ''.join([format(random.randint(0, 15), 'X') for _ in range(MESSAGE_LEN // 4)])
     train_secrets.append(ethereum_to_bits(rand_hex, MESSAGE_LEN))
 
-print(f"✅ Secret pool: {len(train_secrets)} diverse Ethereum addresses")
+print(f"Secret pool: {len(train_secrets)} diverse Ethereum addresses")
 
 all_bits = torch.stack(train_secrets).float()
 ones_ratio = all_bits.mean().item()
-print(f"📊 Bit balance in pool: {ones_ratio:.1%} ones, {1-ones_ratio:.1%} zeros")
-
-print("\n🚀 Starting training with differentiable blur...")
-print(f"   Target: '{SECRET_SHORT}'")
-print(f"   Differentiable blur: σ=0.5-1.5")
-print(f"   Expected time: ~25-35 minutes")
-print(f"   Goal: >75% accuracy\n")
+print(f"Bit balance in pool: {ones_ratio:.1%} ones, {1-ones_ratio:.1%} zeros")
 
 enc.train()
 dec.train()
-training_mode = True  # Enable random blur
+training_mode = True
 
 step = 0
 max_steps = 3000
@@ -64,7 +48,6 @@ while step < max_steps:
 
         watermarked = enc(images, secrets)
 
-        # CHANGE 3: Use differentiable blur (gradients flow!)
         attacked = differentiable_blur(watermarked)
 
         logits = dec(attacked)
@@ -72,7 +55,6 @@ while step < max_steps:
         secret_loss = F.binary_cross_entropy_with_logits(logits, secrets)
         image_loss = F.mse_loss(watermarked, images)
 
-        # CHANGE 4: Increased secret loss weight from 1.0 to 2.0
         loss = 2.0 * secret_loss + 0.3 * image_loss
 
         optimizer.zero_grad()
@@ -82,7 +64,6 @@ while step < max_steps:
         optimizer.step()
         scheduler.step()
 
-        # ===== GRADIENT DIAGNOSTIC (every 100 steps) =====
         if step % 100 == 0:
             # Check encoder gradients
             enc_grads = []
@@ -90,7 +71,6 @@ while step < max_steps:
                 if param.grad is not None:
                     enc_grads.append(param.grad.abs().mean().item())
 
-            # Check decoder gradients
             dec_grads = []
             for name, param in dec.named_parameters():
                 if param.grad is not None:
@@ -99,12 +79,11 @@ while step < max_steps:
             enc_grad_mean = np.mean(enc_grads) if enc_grads else 0.0
             dec_grad_mean = np.mean(dec_grads) if dec_grads else 0.0
 
-            print(f"\n🔍 Gradient Check at Step {step}:")
+            print(f"\nGradient Check at Step {step}:")
             print(f"   Encoder avg grad: {enc_grad_mean:.6f}")
             print(f"   Decoder avg grad: {dec_grad_mean:.6f}")
             print(f"   Ratio (enc/dec): {enc_grad_mean/(dec_grad_mean+1e-10):.4f}")
 
-            # Check specific critical layers
             if enc.decoder[0].weight.grad is not None:
                 print(f"   Encoder decoder[0] grad: {enc.decoder[0].weight.grad.abs().mean().item():.6f}")
             if enc.alpha.grad is not None:
@@ -143,9 +122,9 @@ while step < max_steps:
                 if target_acc > best_target_acc:
                     best_target_acc = target_acc
                     if target_acc > 0.70 and step > 500:
-                        print(f"  ⭐ New best: {best_target_acc:.1%}")
+                        print(f"New best: {best_target_acc:.1%}")
 
-                training_mode = True  # Back to random blur
+                training_mode = True
 
         step += 1
 

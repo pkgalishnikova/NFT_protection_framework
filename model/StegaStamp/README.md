@@ -1,6 +1,8 @@
 # StegaStamp: Baseline and Prior Work
 
-This folder contains all work related to StegaStamp (Tancik et al., 2020), which was a preparatory work to understand the pipeline and the primary baseline for comparison with HiDDeN.
+This folder contains all work related to StegaStamp (Tancik et al., 2020) [2], which was a preparatory work to understand the pipeline and the primary baseline for comparison with HiDDeN.
+
+[2] Matthew Tancik, Ben Mildenhall, and Ren Ng. StegaStamp: Invisible Hyperlinks in Physical Photographs. 2020. arXiv: 1904.05343 [cs.CV]. url: https://arxiv.org/abs/1904.05343
 
 ## Files
 
